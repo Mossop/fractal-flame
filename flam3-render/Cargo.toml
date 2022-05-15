@@ -1,0 +1,15 @@
+[package]
+name = "flam3-render"
+description = "A command line tool for rendering flam3 fractal flames."
+repository = "https://github.com/Mossop/fractal-flame"
+readme = "README.md"
+version = "0.0.1"
+authors = ["Dave Townsend <dtownsend@oxymoronical.com>"]
+license = "GPL"
+edition = "2021"
+
+[dependencies]
+flam3 = { path = "../flam3" }
+clap = { version = "3.1.16", features = ["derive"] }
+flexi_logger = "0.22.3"
+png = "0.17.5"

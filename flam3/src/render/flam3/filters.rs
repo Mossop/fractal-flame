@@ -1,0 +1,372 @@
+use std::f64::consts::PI;
+
+use crate::{utils::PanicCast, SpatialFilter, TemporalFilter};
+
+use super::{Field, Flam3DeHelper, Flam3Frame};
+
+const FLAM3_MITCHELL_B: f64 = 1.0 / 3.0;
+const FLAM3_MITCHELL_C: f64 = 1.0 / 3.0;
+
+fn flam3_spatial_support(spatial_filter: SpatialFilter) -> f64 {
+    match spatial_filter {
+        SpatialFilter::Gaussian => 1.5,
+        SpatialFilter::Hermite => 1.0,
+        SpatialFilter::Box => 0.5,
+        SpatialFilter::Triangle => 1.0,
+        SpatialFilter::Bell => 1.5,
+        SpatialFilter::BSpline => 2.0,
+        SpatialFilter::Mitchell => 2.0,
+        SpatialFilter::Blackman => 1.0,
+        SpatialFilter::Catrom => 2.0,
+        SpatialFilter::Hanning => 1.0,
+        SpatialFilter::Hamming => 1.0,
+        SpatialFilter::Lanczos3 => 3.0,
+        SpatialFilter::Lanczos2 => 2.0,
+        SpatialFilter::Quadratic => 1.5,
+    }
+}
+
+fn flam3_hermite_filter(mut t: f64) -> f64 {
+    /* f(t) = 2|t|^3 - 3|t|^2 + 1, -1 <= t <= 1 */
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 1.0 {
+        (2.0 * t - 3.0) * t * t + 1.0
+    } else {
+        0.0
+    }
+}
+
+fn flam3_box_filter(t: f64) -> f64 {
+    if (t > -0.5) && (t <= 0.5) {
+        1.0
+    } else {
+        0.0
+    }
+}
+
+fn flam3_triangle_filter(mut t: f64) -> f64 {
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 1.0 {
+        1.0 - t
+    } else {
+        0.0
+    }
+}
+
+fn flam3_bell_filter(mut t: f64) -> f64 {
+    /* box (*) box (*) box */
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 0.5 {
+        0.75 - (t * t)
+    } else if t < 1.5 {
+        t -= 1.5;
+        0.5 * (t * t)
+    } else {
+        0.0
+    }
+}
+
+fn flam3_b_spline_filter(mut t: f64) -> f64 {
+    /* box (*) box (*) box (*) box */
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 1.0 {
+        let tt = t * t;
+        (0.5 * tt * t) - tt + (2.0 / 3.0)
+    } else if t < 2.0 {
+        t = 2.0 - t;
+        (1.0 / 6.0) * (t * t * t)
+    } else {
+        0.0
+    }
+}
+
+fn flam3_sinc(mut x: f64) -> f64 {
+    x *= PI;
+    if x != 0.0 {
+        x.sin() / x
+    } else {
+        1.0
+    }
+}
+
+fn flam3_blackman_filter(x: f64) -> f64 {
+    0.42 + 0.5 * (PI * x).cos() + 0.08 * (2.0 * PI * x).cos()
+}
+
+fn flam3_catrom_filter(x: f64) -> f64 {
+    if x < -2.0 {
+        0.0
+    } else if x < -1.0 {
+        0.5 * (4.0 + x * (8.0 + x * (5.0 + x)))
+    } else if x < 0.0 {
+        0.5 * (2.0 + x * x * (-5.0 - 3.0 * x))
+    } else if x < 1.0 {
+        0.5 * (2.0 + x * x * (-5.0 + 3.0 * x))
+    } else if x < 2.0 {
+        0.5 * (4.0 + x * (-8.0 + x * (5.0 - x)))
+    } else {
+        0.0
+    }
+}
+
+fn flam3_mitchell_filter(mut t: f64) -> f64 {
+    let tt = t * t;
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 1.0 {
+        t = ((12.0 - 9.0 * FLAM3_MITCHELL_B - 6.0 * FLAM3_MITCHELL_C) * (t * tt))
+            + ((-18.0 + 12.0 * FLAM3_MITCHELL_B + 6.0 * FLAM3_MITCHELL_C) * tt)
+            + (6.0 - 2.0 * FLAM3_MITCHELL_B);
+        t / 6.0
+    } else if t < 2.0 {
+        t = ((-1.0 * FLAM3_MITCHELL_B - 6.0 * FLAM3_MITCHELL_C) * (t * tt))
+            + ((6.0 * FLAM3_MITCHELL_B + 30.0 * FLAM3_MITCHELL_C) * tt)
+            + ((-12.0 * FLAM3_MITCHELL_B - 48.0 * FLAM3_MITCHELL_C) * t)
+            + (8.0 * FLAM3_MITCHELL_B + 24.0 * FLAM3_MITCHELL_C);
+        t / 6.0
+    } else {
+        0.0
+    }
+}
+
+fn flam3_hanning_filter(x: f64) -> f64 {
+    0.5 + 0.5 * (PI * x).cos()
+}
+
+fn flam3_hamming_filter(x: f64) -> f64 {
+    0.54 + 0.46 * (PI * x).cos()
+}
+
+fn flam3_lanczos3_filter(mut t: f64) -> f64 {
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 3.0 {
+        flam3_sinc(t) * flam3_sinc(t / 3.0)
+    } else {
+        0.0
+    }
+}
+
+fn flam3_lanczos2_filter(mut t: f64) -> f64 {
+    if t < 0.0 {
+        t = -t;
+    }
+
+    if t < 2.0 {
+        flam3_sinc(t) * flam3_sinc(t / 2.0)
+    } else {
+        0.0
+    }
+}
+
+fn flam3_gaussian_filter(x: f64) -> f64 {
+    ((-2.0 * x * x).exp()) * (2.0 / PI).sqrt()
+}
+
+fn flam3_quadratic_filter(x: f64) -> f64 {
+    if x < -1.5 {
+        0.0
+    } else if x < -0.5 {
+        0.5 * (x + 1.5) * (x + 1.5)
+    } else if x < 0.5 {
+        0.75 - x * x
+    } else if x < 1.5 {
+        0.5 * (x - 1.5) * (x - 1.5)
+    } else {
+        0.0
+    }
+}
+
+fn flam3_spatial_filter(spatial_filter: SpatialFilter, x: f64) -> f64 {
+    match spatial_filter {
+        SpatialFilter::Gaussian => flam3_gaussian_filter(x),
+        SpatialFilter::Hermite => flam3_hermite_filter(x),
+        SpatialFilter::Box => flam3_box_filter(x),
+        SpatialFilter::Triangle => flam3_triangle_filter(x),
+        SpatialFilter::Bell => flam3_bell_filter(x),
+        SpatialFilter::BSpline => flam3_b_spline_filter(x),
+        SpatialFilter::Mitchell => flam3_mitchell_filter(x),
+        SpatialFilter::Blackman => flam3_sinc(x) * flam3_blackman_filter(x),
+        SpatialFilter::Catrom => flam3_catrom_filter(x),
+        SpatialFilter::Hanning => flam3_sinc(x) * flam3_hanning_filter(x),
+        SpatialFilter::Hamming => flam3_sinc(x) * flam3_hamming_filter(x),
+        SpatialFilter::Lanczos3 => flam3_lanczos3_filter(x) * flam3_sinc(x / 3.0),
+        SpatialFilter::Lanczos2 => flam3_lanczos2_filter(x) * flam3_sinc(x / 2.0),
+        _ => flam3_quadratic_filter(x),
+    }
+}
+
+fn normalize_vector(v: &mut [f64]) -> Result<(), String> {
+    let mut t = 0.0;
+    for val in v.iter() {
+        t += val;
+    }
+
+    if t == 0.0 {
+        return Err("Spatial filter value is too small".to_string());
+    }
+
+    t = 1.0 / t;
+    for val in v.iter_mut() {
+        *val *= t;
+    }
+
+    Ok(())
+}
+
+pub(super) fn flam3_create_spatial_filter(
+    frame: &Flam3Frame,
+    field: Field,
+) -> Result<(Vec<f64>, u32), String> {
+    let sf_kernel = frame.genomes[0].spatial_filter_select;
+    let supersample = frame.genomes[0].spatial_oversample;
+    let sf_radius = frame.genomes[0].spatial_filter_radius;
+    let aspect_ratio = frame.pixel_aspect_ratio;
+    let sf_supp = flam3_spatial_support(sf_kernel);
+
+    let fw = 2.0 * sf_supp * supersample.f64() * sf_radius / aspect_ratio;
+    let mut fwidth = fw.u32() + 1;
+
+    /* Make sure the filter kernel has same parity as oversample */
+    if (fwidth ^ supersample) & 1 > 0 {
+        fwidth += 1;
+    }
+
+    /* Calculate the coordinate scaling factor for the kernel values */
+    let adjust = if fw > 0.0 {
+        sf_supp * fwidth.f64() / fw
+    } else {
+        1.0
+    };
+
+    let mut filter = vec![0.0; (fwidth * fwidth).usize()];
+
+    /* fill in the coefs */
+    for i in 0..fwidth {
+        for j in 0..fwidth {
+            /* Calculate the function inputs for the kernel function */
+            let ii = ((2 * i + 1).f64() / fwidth.f64() - 1.0) * adjust;
+            let mut jj = ((2 * j + 1).f64() / fwidth.f64() - 1.0) * adjust;
+
+            /* Scale for scanlines */
+            if field != Field::Both {
+                jj *= 2.0;
+            }
+
+            /* Adjust for aspect ratio */
+            jj /= aspect_ratio;
+
+            filter[(i + j * fwidth).usize()] =
+                flam3_spatial_filter(sf_kernel, ii) * flam3_spatial_filter(sf_kernel, jj);
+        }
+    }
+
+    normalize_vector(&mut filter)?;
+
+    Ok((filter, fwidth))
+}
+
+pub fn flam3_create_temporal_filter(
+    num_steps: usize,
+    filter_type: TemporalFilter,
+    filter_exp: f64,
+    filter_width: f64,
+) -> Result<(f64, Vec<f64>, Vec<f64>), String> {
+    let mut maxfilt = 0.0;
+    let mut sumfilt = 0.0;
+
+    /* Allocate memory - this must be freed in the calling routine! */
+    let mut deltas = vec![0.0; num_steps];
+    let mut filter = vec![0.0; num_steps];
+
+    /* Deal with only one step */
+    if num_steps == 1 {
+        deltas[0] = 0.0;
+        filter[0] = 1.0;
+        return Ok((1.0, filter, deltas));
+    }
+
+    /* Define the temporal deltas */
+    for (i, delta) in deltas.iter_mut().enumerate() {
+        *delta = (i.f64() / (num_steps.f64() - 1.0) - 0.5) * filter_width;
+    }
+
+    /* Define the filter coefs */
+    match filter_type {
+        TemporalFilter::Exp => {
+            for (i, filt) in filter.iter_mut().enumerate() {
+                let slpx = if filter_exp >= 0.0 {
+                    (i.f64() + 1.0) / num_steps.f64()
+                } else {
+                    (num_steps - i).f64() / num_steps.f64()
+                };
+
+                /* Scale the color based on these values */
+                *filt = slpx.powf(filter_exp.abs());
+
+                /* Keep the max */
+                if *filt > maxfilt {
+                    maxfilt = *filt;
+                }
+            }
+        }
+        TemporalFilter::Gaussian => {
+            let halfsteps = num_steps.f64() / 2.0;
+            for (i, filt) in filter.iter_mut().enumerate() {
+                /* Gaussian */
+                *filt = flam3_spatial_filter(
+                    SpatialFilter::Gaussian,
+                    flam3_spatial_support(SpatialFilter::Gaussian) * (i.f64() - halfsteps).abs()
+                        / halfsteps,
+                );
+                /* Keep the max */
+                if *filt > maxfilt {
+                    maxfilt = *filt;
+                }
+            }
+        }
+        TemporalFilter::Box => {
+            for filt in filter.iter_mut() {
+                *filt = 1.0;
+            }
+
+            maxfilt = 1.0;
+        }
+    }
+
+    /* Adjust the filter so that the max is 1.0, and */
+    /* calculate the K2 scaling factor  */
+    for filt in filter.iter_mut() {
+        *filt /= maxfilt;
+        sumfilt += *filt;
+    }
+
+    sumfilt /= num_steps.f64();
+
+    Ok((sumfilt, filter, deltas))
+}
+
+pub(super) fn flam3_create_de_filters(
+    max_rad: f64,
+    min_rad: f64,
+    curve: f64,
+    ss: u32,
+) -> Flam3DeHelper {
+    unimplemented!();
+}
