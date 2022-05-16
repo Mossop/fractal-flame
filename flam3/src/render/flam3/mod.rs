@@ -42,14 +42,14 @@ trait RenderOps: Clone + Default {
     fn bump_no_overflow(dest: &mut [Self::Bucket; 5], delta: &[f64; 5]);
     fn abump_no_overflow(dest: &mut [Self::Accumulator; 4], delta: &[f64; 4]);
     fn add_c_to_accum(
-        acc: &mut [Self::Accumulator],
-        i: usize,
-        ii: usize,
-        j: usize,
-        jj: usize,
-        wid: usize,
-        hgt: usize,
-        c: &[Self::Accumulator; 4],
+        acc: &mut [[Self::Accumulator; 4]],
+        i: u32,
+        ii: i32,
+        j: u32,
+        jj: i32,
+        wid: u32,
+        hgt: u32,
+        c: &[f64; 4],
     );
 }
 
@@ -76,16 +76,23 @@ impl RenderOps for RenderOpsAtomicFloat {
     }
 
     fn add_c_to_accum(
-        acc: &mut [Self::Accumulator],
-        i: usize,
-        ii: usize,
-        j: usize,
-        jj: usize,
-        wid: usize,
-        hgt: usize,
-        c: &[Self::Accumulator; 4],
+        acc: &mut [[Self::Accumulator; 4]],
+        i: u32,
+        ii: i32,
+        j: u32,
+        jj: i32,
+        wid: u32,
+        hgt: u32,
+        c: &[f64; 4],
     ) {
-        todo!()
+        let y = j.i32() + jj;
+        let x = i.i32() + ii;
+        let width = wid.i32();
+        let height = hgt.i32();
+        if y >= 0 && y < height && x >= 0 && x < width {
+            let a = &mut acc[(x + y * width).usize()..];
+            Self::abump_no_overflow(&mut a[0], c);
+        }
     }
 
     fn bucket_storage(nbuckets: usize) -> Vec<[Self::Bucket; 5]> {
@@ -166,7 +173,7 @@ impl Flam3IterConstants {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Flam3DeHelper {
     max_filtered_counts: u32,
     max_filter_index: u32,
@@ -181,7 +188,17 @@ struct Flam3ThreadHelper {
     fic: Flam3IterConstants,
 }
 
-struct Flam3DeThreadHelper {}
+struct Flam3DeThreadHelper {
+    width: u32,
+    height: u32,
+    oversample: u32,
+    de: Flam3DeHelper,
+    k1: f64,
+    k2: f64,
+    curve: f64,
+    start_row: u32,
+    end_row: i32,
+}
 
 pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<Vec<u8>, String> {
     let rng = if let Some(ref seed) = options.isaac_seed {

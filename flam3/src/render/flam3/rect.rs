@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::{utils::PanicCast, Rgba};
+use crate::{render::flam3::Flam3DeHelper, utils::PanicCast, Rgba};
 
 use super::{
     filters::{flam3_create_de_filters, flam3_create_spatial_filter, flam3_create_temporal_filter},
@@ -237,6 +237,14 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     fic.width = oversample * image_width + 2 * gutter_width;
 
     let nbuckets = (fic.width * fic.height).usize();
+    log::trace!(
+        "height={}, width={}, oversample={}, gutter={}, buckets: {}",
+        image_height,
+        image_width,
+        oversample,
+        gutter_width,
+        nbuckets
+    );
     let mut buckets = Ops::bucket_storage(nbuckets);
     let mut accumulate = Ops::accumulator_storage(nbuckets);
 
@@ -266,9 +274,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 cp.estimator_minimum,
                 cp.estimator_curve,
                 oversample,
-            )
+            )?
         } else {
-            Default::default()
+            Flam3DeHelper::default()
         };
 
         let mut ppux = 0.0;
@@ -375,31 +383,8 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 });
             }
 
-            //  //  Let's make some threads
-            //  myThreads = (pthread_t *)malloc(spec->nthreads * sizeof(pthread_t));
-
-            //  #if defined(USE_LOCKS)
-            //  pthread_mutex_init(&fic.bucket_mutex, NULL);
-            //  #endif
-
-            //  pthread_attr_init(&pt_attr);
-            //  pthread_attr_setdetachstate(&pt_attr,PTHREAD_CREATE_JOINABLE);
-
-            //  for (thi=0; thi <spec->nthreads; thi ++)
-            //     pthread_create(&myThreads[thi], &pt_attr, (void *)iter_thread, (void *)(&(fth[thi])));
-
-            //  pthread_attr_destroy(&pt_attr);
-
-            //  //  Wait for them to return
-            //  for (thi=0; thi < spec->nthreads; thi++)
-            //     pthread_join(myThreads[thi], NULL);
-
-            //  #if defined(USE_LOCKS)
-            //  pthread_mutex_destroy(&fic.bucket_mutex);
-            //  #endif
-
-            //  free(myThreads);
             for helper in fth {
+                // TODO actually use threads
                 iter_thread::<Ops>(helper, &mut buckets)?;
             }
 
@@ -452,73 +437,52 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 }
             }
         } else {
-            let de_aborted = 0;
             let myspan = fic.height - 2 * (oversample - 1) + 1;
             let swath = myspan / frame.num_threads.u32();
 
             //  Create the de helper structures
             let mut deth: Vec<Flam3DeThreadHelper> = Vec::new();
 
-            for _ in 0..frame.num_threads {
+            for i in 0..frame.num_threads {
+                let start_row;
+                let end_row;
+                if frame.num_threads > myspan.usize() {
+                    //  More threads than rows
+                    start_row = 0;
+                    if i == frame.num_threads - 1 {
+                        end_row = myspan.i32();
+                    } else {
+                        end_row = -1;
+                    }
+                } else {
+                    //  Normal case
+                    start_row = i.u32() * swath;
+                    if i == frame.num_threads - 1 {
+                        end_row = fic.height.i32(); //myspan.i32();
+                    } else {
+                        end_row = ((i.u32() + 1) * swath).i32();
+                    }
+                }
+
                 //  Set up the contents of the helper structure
-                // deth[thi].b = buckets;
-                // deth[thi].accumulate = accumulate;
-                // deth[thi].width = fic.width;
-                // deth[thi].height = fic.height;
-                // deth[thi].oversample = oversample;
-                // deth[thi].progress_size = spec->sub_batch_size/10;
-                // deth[thi].de = &de;
-                // deth[thi].k1 = k1;
-                // deth[thi].k2 = k2;
-                // deth[thi].curve = cp.estimator_curve;
-                // deth[thi].spec = spec;
-                // deth[thi].aborted = &de_aborted;
-                // if ( (spec->nthreads)>myspan) { //  More threads than rows
-                //    deth[thi].start_row=0;
-                //    if (thi==spec->nthreads-1) {
-                //       deth[thi].end_row=myspan;
-                //       deth[thi].last_thread=1;
-                //    } else {
-                //       deth[thi].end_row=-1;
-                //       deth[thi].last_thread=0;
-                //    }
-                // } else { //  Normal case
-                //    deth[thi].start_row=thi*swath;
-                //    deth[thi].end_row=(thi+1)*swath;
-                //    if (thi==spec->nthreads-1) {
-                //       deth[thi].end_row=myspan;
-                //       deth[thi].last_thread=1;
-                //    } else {
-                //       deth[thi].last_thread=0;
-                //    }
-                // }
+                deth.push(Flam3DeThreadHelper {
+                    width: fic.width,
+                    height: fic.height,
+                    oversample,
+                    de: de.clone(),
+                    k1,
+                    k2,
+                    curve: cp.estimator_curve,
+                    start_row,
+                    end_row,
+                })
             }
 
-            //  //  Let's make some threads
-            //  myThreads = (pthread_t *)malloc(spec->nthreads * sizeof(pthread_t));
-
-            //  pthread_attr_init(&pt_attr);
-            //  pthread_attr_setdetachstate(&pt_attr,PTHREAD_CREATE_JOINABLE);
-
-            //  for (thi=0; thi <spec->nthreads; thi ++)
-            //     pthread_create(&myThreads[thi], &pt_attr, (void *)de_thread, (void *)(&(deth[thi])));
-
-            //  pthread_attr_destroy(&pt_attr);
-
-            //  //  Wait for them to return
-            //  for (thi=0; thi < spec->nthreads; thi++)
-            //     pthread_join(myThreads[thi], NULL);
-
-            //  free(myThreads);
             for thread_helper in deth {
-                de_thread(thread_helper)?;
+                // TODO Actually use threads
+                de_thread::<Ops>(thread_helper, &buckets, &mut accumulate);
             }
-
-            //  if (de_aborted) {
-            //     if (verbose) fprintf(stderr, "\naborted!\n");
-            //     goto done;
-            //  }
-        } //  End density estimation loop
+        }
     }
 
     log::trace!("Batches complete");

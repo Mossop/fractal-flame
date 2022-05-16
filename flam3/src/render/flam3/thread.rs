@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use crate::{utils::PanicCast, Genome, PaletteMode, Rgba, Transform};
+use crate::{
+    render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Rgba, Transform,
+};
 
 use super::{
     rng::Flam3Rng,
@@ -116,12 +118,6 @@ pub(super) fn iter_thread<Ops: RenderOps>(
             ficp.spec.sub_batch_size
         };
 
-        log::trace!(
-            "Rendering sub batches {} to {}",
-            sub_batch,
-            sub_batch + sub_batch_size
-        );
-
         /* Seed iterations */
         iter_storage[0] = fthp.rng.isaac_11();
         iter_storage[1] = fthp.rng.isaac_11();
@@ -215,11 +211,130 @@ pub(super) fn iter_thread<Ops: RenderOps>(
         }
     }
 
-    log::trace!("Thread complete, found {} bad values", ficp.badvals);
+    log::trace!(
+        "Iteration thread complete, found {} bad values",
+        ficp.badvals
+    );
     Ok(())
 }
 
-pub(super) fn de_thread(mut fdthp: Flam3DeThreadHelper) -> Result<(), String> {
-    log::trace!("Starting density estimation thread");
-    Ok(())
+pub(super) fn de_thread<Ops: RenderOps>(
+    dthp: Flam3DeThreadHelper,
+    buckets: &[[Ops::Bucket; 5]],
+    accumulate: &mut [[Ops::Accumulator; 4]],
+) {
+    let oversample = dthp.oversample;
+    let ss = (oversample.f64() / 2.0).floor().i32();
+    let scf = !(oversample & 1);
+    let scfact = (oversample.f64() / (oversample.f64() + 1.0)).powf(2.0);
+    let wid = dthp.width;
+    let hig = dthp.height;
+    let str = (oversample - 1) + dthp.start_row;
+    let enr = ((oversample - 1).i32() + dthp.end_row).u32();
+
+    log::trace!(
+        "Starting density estimation thread for rows {} to {}, width={}, height={}",
+        str,
+        enr,
+        wid,
+        hig
+    );
+
+    /* Density estimation code */
+    for j in str..enr {
+        for i in oversample - 1..wid - (oversample - 1) {
+            let mut c = [0.0; 4];
+            let mut f_select = 0.0;
+            let index = (i + j * wid).usize();
+
+            /* Don't do anything if there's no hits here */
+            if buckets[index][3].f64() == 0.0 || buckets[index][4].f64() == 0.0 {
+                continue;
+            }
+
+            /* Count density in ssxss area   */
+            /* Scale if OS>1 for equal iters */
+            for ii in -ss..=ss {
+                for jj in -ss..=ss {
+                    let index = ((i.i32() + ii) + (j.i32() + jj) * wid.i32()).usize();
+                    f_select += buckets[index][4].f64() / 255.0;
+                }
+            }
+
+            if scf != 0 {
+                f_select *= scfact;
+            }
+
+            let mut f_select_int = if f_select > dthp.de.max_filtered_counts.f64() {
+                dthp.de.max_filter_index
+            } else if f_select <= DE_THRESH.f64() {
+                f_select.ceil().u32() - 1
+            } else {
+                DE_THRESH + (f_select - DE_THRESH.f64()).powf(dthp.curve).floor().u32()
+            };
+
+            /* If the filter selected below the min specified clamp it to the min */
+            if f_select_int > dthp.de.max_filter_index {
+                f_select_int = dthp.de.max_filter_index;
+            }
+
+            /* We only have to calculate the values for ~1/8 of the square */
+            let mut f_coef_idx = (f_select_int * dthp.de.kernel_size).usize();
+
+            let arr_filt_width = (dthp.de.filter_widths[f_select_int.usize()]).ceil().u32() - 1;
+
+            let b = &buckets[(i + j * wid).usize()..];
+
+            for jj in 0..=arr_filt_width.i32() {
+                for ii in 0..=jj {
+                    /* Skip if coef is 0 */
+                    if dthp.de.filter_coefs[f_coef_idx] == 0.0 {
+                        f_coef_idx += 1;
+                        continue;
+                    }
+
+                    c[0] = b[0][0].f64();
+                    c[1] = b[0][1].f64();
+                    c[2] = b[0][2].f64();
+                    c[3] = b[0][3].f64();
+
+                    let ls = dthp.de.filter_coefs[f_coef_idx]
+                        * (dthp.k1 * (1.0 + c[3] * dthp.k2).log2())
+                        / c[3];
+
+                    c[0] *= ls;
+                    c[1] *= ls;
+                    c[2] *= ls;
+                    c[3] *= ls;
+
+                    if jj == 0 && ii == 0 {
+                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &c);
+                    } else if ii == 0 {
+                        Ops::add_c_to_accum(accumulate, i, jj, j, 0, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -jj, j, 0, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, 0, j, jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, 0, j, -jj, wid, hig, &c);
+                    } else if jj == ii {
+                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -ii, j, jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, ii, j, -jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -ii, j, -jj, wid, hig, &c);
+                    } else {
+                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -ii, j, jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, ii, j, -jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -ii, j, -jj, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, jj, j, ii, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -jj, j, ii, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, jj, j, -ii, wid, hig, &c);
+                        Ops::add_c_to_accum(accumulate, i, -jj, j, -ii, wid, hig, &c);
+                    }
+
+                    f_coef_idx += 1;
+                }
+            }
+        }
+    }
+
+    log::trace!("Density estimation thread complete");
 }
