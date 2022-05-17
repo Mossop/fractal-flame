@@ -299,7 +299,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
                     c[3] = b[0][3].f64();
 
                     let ls = dthp.de.filter_coefs[f_coef_idx]
-                        * (dthp.k1 * (1.0 + c[3] * dthp.k2).log2())
+                        * (dthp.k1 * (1.0 + c[3] * dthp.k2).ln())
                         / c[3];
 
                     c[0] *= ls;

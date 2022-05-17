@@ -19,7 +19,7 @@ fn adjust_percentage(perc: f64) -> f64 {
     if perc == 0.0 {
         0.0
     } else {
-        10.0_f64.powf(-(1.0 / perc).log2() / 2.0_f64.log2())
+        10.0_f64.powf(-(1.0 / perc).ln() / 2.0_f64.ln())
     }
 }
 

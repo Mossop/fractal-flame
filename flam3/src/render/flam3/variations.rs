@@ -1241,7 +1241,7 @@ impl Flam3Variation for variations::Bipolar {
             y = M_PI_2 - ((M_PI_2 - y) % M_PI);
         }
 
-        f.p0 += self.weight() * 0.25 * M_2_PI * ((t + x2) / (t - x2)).log2();
+        f.p0 += self.weight() * 0.25 * M_2_PI * ((t + x2) / (t - x2)).ln();
         f.p1 += self.weight() * M_2_PI * y;
     }
 }
@@ -1344,7 +1344,7 @@ impl Flam3Variation for variations::Cpow {
         _precalc: &mut VariationPrecalculations,
     ) {
         let a = f.atanyx();
-        let lnr = 0.5 * f.sumsq().log2();
+        let lnr = 0.5 * f.sumsq().ln();
         let va = 2.0 * M_PI / self.power;
         let vc = self.r / self.power;
         let vd = self.i / self.power;
@@ -1394,7 +1394,7 @@ impl Flam3Variation for variations::Edisc {
         let r1 = (tmp + tmp2).sqrt();
         let r2 = (tmp - tmp2).sqrt();
         let xmax = (r1 + r2) * 0.5;
-        let a1 = (xmax + (xmax - 1.0).sqrt()).log2();
+        let a1 = (xmax + (xmax - 1.0).sqrt()).ln();
         let a2 = -(f.tx / xmax).acos();
         let w = self.weight() / 11.57034632;
 
@@ -1442,9 +1442,9 @@ impl Flam3Variation for variations::Elliptic {
         f.p0 += w * a.atan2(b);
 
         if f.ty > 0.0 {
-            f.p1 += w * (xmax + ssx).log2();
+            f.p1 += w * (xmax + ssx).ln();
         } else {
-            f.p1 -= w * (xmax + ssx).log2();
+            f.p1 -= w * (xmax + ssx).ln();
         }
     }
 }
@@ -1457,7 +1457,7 @@ impl Flam3Variation for variations::Escher {
         _precalc: &mut VariationPrecalculations,
     ) {
         let a = f.atanyx();
-        let lnr = 0.5 * f.sumsq().log2();
+        let lnr = 0.5 * f.sumsq().ln();
 
         let (seb, ceb) = sincos(self.beta);
 
@@ -1634,7 +1634,7 @@ impl Flam3Variation for variations::Polar2 {
         let p2v = self.weight() / M_PI;
 
         f.p0 += p2v * f.atan();
-        f.p1 += p2v / 2.0 * f.sumsq().log2();
+        f.p1 += p2v / 2.0 * f.sumsq().ln();
     }
 }
 
@@ -1887,7 +1887,7 @@ impl Flam3Variation for variations::Log {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        f.p0 += self.weight() * 0.5 * f.sumsq().log2();
+        f.p0 += self.weight() * 0.5 * f.sumsq().ln();
         f.p1 += self.weight() * f.atanyx();
     }
 }

@@ -423,7 +423,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                         continue;
                     }
 
-                    let ls = (k1 * (1.0 + c[3] * k2).log2()) / c[3];
+                    let ls = (k1 * (1.0 + c[3] * k2).ln()) / c[3];
                     c[0] *= ls;
                     c[1] *= ls;
                     c[2] *= ls;
