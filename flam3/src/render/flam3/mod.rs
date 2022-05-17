@@ -90,8 +90,7 @@ impl RenderOps for RenderOpsAtomicFloat {
         let width = wid.i32();
         let height = hgt.i32();
         if y >= 0 && y < height && x >= 0 && x < width {
-            let a = &mut acc[(x + y * width).usize()..];
-            Self::abump_no_overflow(&mut a[0], c);
+            Self::abump_no_overflow(&mut acc[(x + y * width).usize()], c);
         }
     }
 

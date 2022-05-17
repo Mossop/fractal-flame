@@ -1,6 +1,10 @@
 use std::f64::consts::PI;
 
-use crate::{render::flam3::Flam3DeHelper, utils::PanicCast, Rgba};
+use crate::{
+    render::flam3::{rng::Flam3Rng, Flam3DeHelper},
+    utils::PanicCast,
+    Rgba,
+};
 
 use super::{
     filters::{flam3_create_de_filters, flam3_create_spatial_filter, flam3_create_temporal_filter},
@@ -150,7 +154,7 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
 }
 
 pub(super) fn render_rectangle<Ops: RenderOps>(
-    frame: Flam3Frame,
+    mut frame: Flam3Frame,
     mut buffer: &mut [u8],
     field: Field,
 ) -> Result<(), String> {
@@ -237,14 +241,6 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     fic.width = oversample * image_width + 2 * gutter_width;
 
     let nbuckets = (fic.width * fic.height).usize();
-    log::trace!(
-        "height={}, width={}, oversample={}, gutter={}, buckets: {}",
-        image_height,
-        image_width,
-        oversample,
-        gutter_width,
-        nbuckets
-    );
     let mut buckets = Ops::bucket_storage(nbuckets);
     let mut accumulate = Ops::accumulator_storage(nbuckets);
 
@@ -306,7 +302,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     red: color.red * WHITE_LEVEL.f64() * color_scalar,
                     green: color.green * WHITE_LEVEL.f64() * color_scalar,
                     blue: color.blue * WHITE_LEVEL.f64() * color_scalar,
-                    alpha: color.blue * WHITE_LEVEL.f64() * color_scalar,
+                    alpha: color.alpha * WHITE_LEVEL.f64() * color_scalar,
                 })
                 .collect();
 
@@ -377,7 +373,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             let mut fth: Vec<Flam3ThreadHelper> = Vec::new();
             for _ in 0..frame.num_threads {
                 fth.push(Flam3ThreadHelper {
-                    rng: frame.rng.clone(),
+                    rng: Flam3Rng::from_rng(&mut frame.rng),
                     cp: cp.clone(),
                     fic: fic.clone(),
                 });

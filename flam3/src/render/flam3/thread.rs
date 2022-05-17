@@ -138,8 +138,8 @@ pub(super) fn iter_thread<Ops: RenderOps>(
         ficp.badvals += badcount;
 
         /* Put them in the bucket accumulator */
-        for j in (0..(sub_batch_size * 4)).step_by(4) {
-            let p = &iter_storage[j.usize()..];
+        for j in (0..(sub_batch_size.usize() * 4)).step_by(4) {
+            let p = &iter_storage[j..j + 4];
 
             let (p0, p1) = if fthp.cp.rotate != 0.0 {
                 ficp.rot

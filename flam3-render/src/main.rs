@@ -5,7 +5,7 @@ use std::{
 };
 
 use clap::Parser;
-use flam3::{flam3_from_reader, render};
+use flam3::{flam3_from_reader, render, RenderOptions};
 use flexi_logger::Logger;
 
 /// Simple program to greet a person
@@ -13,7 +13,12 @@ use flexi_logger::Logger;
 #[clap(author, version, about, long_about = None)]
 struct Args {
     file: Option<String>,
+
+    #[clap(long)]
     out: Option<String>,
+
+    #[clap(long)]
+    seed: Option<String>,
 }
 
 fn make_name(index: usize, base: &Option<String>) -> String {
@@ -45,7 +50,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .unwrap_or_else(|| format!("genome {}", index));
         let size = genome.size.clone();
         println!("Rendering {}...", name);
-        let data = render(genome, Default::default())?;
+        let data = render(
+            genome,
+            RenderOptions {
+                isaac_seed: args.seed.clone(),
+                ..Default::default()
+            },
+        )?;
 
         let name = make_name(index, &args.out);
         println!("Writing {}...", name);

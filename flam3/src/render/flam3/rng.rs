@@ -89,6 +89,16 @@ impl Flam3Rng {
         Self::irandinit(Some(seed))
     }
 
+    pub fn from_rng(rng: &mut Flam3Rng) -> Flam3Rng {
+        let mut seed = [0; RANDSIZ * 8];
+
+        for i in (0..RANDSIZ * 8).step_by(8) {
+            (&mut seed[i..i + 4]).copy_from_slice(&rng.irand().to_le_bytes());
+        }
+
+        Self::irandinit(Some(seed))
+    }
+
     fn isaac(&mut self) {
         let mut a = self.randa;
         self.randc += 1;
@@ -349,5 +359,29 @@ mod tests {
         assert!(rng.isaac_bit());
         assert!(!rng.isaac_bit());
         assert!(!rng.isaac_bit());
+    }
+
+    #[test]
+    fn from_rng() {
+        let mut rng = Flam3Rng::from_seed("foobar");
+
+        assert_eq!(rng.irand(), 358156358);
+        assert_eq!(rng.irand(), 3974535195);
+        assert_eq!(rng.irand(), 916074978);
+        assert_eq!(rng.irand(), 1958166261);
+
+        rng = Flam3Rng::from_rng(&mut rng);
+
+        assert_eq!(rng.irand(), 4279217379);
+        assert_eq!(rng.irand(), 1406626236);
+        assert_eq!(rng.irand(), 2627953629);
+        assert_eq!(rng.irand(), 3924363182);
+        assert_eq!(rng.irand(), 1953805307);
+        assert_eq!(rng.irand(), 2271928233);
+        assert_eq!(rng.irand(), 4227309479);
+        assert_eq!(rng.irand(), 1961718375);
+        assert_eq!(rng.irand(), 2344761049);
+        assert_eq!(rng.irand(), 1051335410);
+        assert_eq!(rng.irand(), 2622661706);
     }
 }
