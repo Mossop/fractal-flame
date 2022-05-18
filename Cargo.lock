@@ -151,6 +151,7 @@ dependencies = [
  "educe",
  "lazy_static",
  "log",
+ "png",
  "rand",
  "rand_isaac",
  "serde",
