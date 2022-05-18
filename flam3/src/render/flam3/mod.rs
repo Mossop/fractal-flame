@@ -4,6 +4,8 @@ mod rng;
 mod thread;
 mod variations;
 
+use std::fmt::Display;
+
 use rand::RngCore;
 
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
@@ -33,7 +35,7 @@ enum Field {
 trait ClonableRng: RngCore + Clone {}
 
 trait RenderOps: Clone + Default {
-    type Bucket: PanicCast + Default + Clone + Copy;
+    type Bucket: PanicCast + Default + Display + Clone + Copy;
     type Accumulator: PanicCast + Default + Clone + Copy + Into<f64>;
 
     fn into_accumulator(val: f64) -> Self::Accumulator;
@@ -61,18 +63,20 @@ impl RenderOps for RenderOpsAtomicFloat {
     type Accumulator = f32;
 
     fn bump_no_overflow(dest: &mut [Self::Bucket; 5], delta: &[f64; 5]) {
-        dest[0] += delta[0].u32();
-        dest[1] += delta[1].u32();
-        dest[2] += delta[2].u32();
-        dest[3] += delta[3].u32();
-        dest[4] += delta[4].u32();
+        for (index, bucket) in dest.iter_mut().enumerate() {
+            let result = bucket.f64() + delta[index];
+            *bucket = if result >= u32::MAX as f64 {
+                u32::MAX
+            } else {
+                result as u32
+            };
+        }
     }
 
     fn abump_no_overflow(dest: &mut [Self::Accumulator; 4], delta: &[f64; 4]) {
-        dest[0] += delta[0].f32();
-        dest[1] += delta[1].f32();
-        dest[2] += delta[2].f32();
-        dest[3] += delta[3].f32();
+        for (index, bucket) in dest.iter_mut().enumerate() {
+            *bucket += delta[index].f32();
+        }
     }
 
     fn add_c_to_accum(

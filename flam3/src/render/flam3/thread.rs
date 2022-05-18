@@ -163,7 +163,6 @@ pub(super) fn iter_thread<Ops: RenderOps>(
 
                 let start = (ficp.ws0 * p0 - ficp.wb0s0).usize()
                     + ficp.width.usize() * (ficp.hs1 * p1 - ficp.hb1s1).usize();
-                let b = &mut buckets[start];
 
                 let dbl_index0 = p[2] * cmap_size.f64();
                 let color_index0 = dbl_index0.i32();
@@ -198,7 +197,7 @@ pub(super) fn iter_thread<Ops: RenderOps>(
                 };
 
                 Ops::bump_no_overflow(
-                    b,
+                    &mut buckets[start],
                     &[
                         logvis * interpcolor[0],
                         logvis * interpcolor[1],
