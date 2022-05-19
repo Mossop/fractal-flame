@@ -1,0 +1,40 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="88" size="640 480" center="0.0310458 -0.225532" scale="308.489" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" ex="0.318421" wedge_sph="0.681579" wedge_sph_angle="2.13204" wedge_sph_hole="-0.368417" wedge_sph_count="2" wedge_sph_swirl="0.223462" coefs="-0.30866 -0.932049 -0.460346 0.323054 0.466709 -0.949816" opacity="1"/>
+   <xform weight="0.333333" color="1" color_speed="0.5" animate="1" polar="0.0563874" juliascope="0.147827" escher="0.374628" waves2="0.0900844" juliascope_power="2" juliascope_dist="1" escher_beta="0.938936" waves2_scalex="0.918478" waves2_scaley="0.842157" waves2_freqx="1.24385" waves2_freqy="0.607331" coefs="0.456863 0.175295 -0.460784 -0.322623 0.51562 -0.958914" opacity="1"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" exponential="0.134674" pie="0.865326" pie_slices="5.97996" pie_rotation="-4.73598" pie_thickness="0.629444" coefs="-0.265502 0.142527 -0.0845493 0.84884 0.254072 -0.727253" opacity="1"/>
+   <palette count="256" format="RGB">
+      2de67e6eb74464ad3e5ba43851983c488c413384541f7c67
+       c5e2d 7471f 23111 e39111b411228561b366b2536652d
+      3760365d9371388971137f72 97969 07361 0674f 05b3d
+      457414747729a47a3e7f60225b46 74a3b 33930 0233110
+      1e371919262c182231181e361e262d252f242e472037601c
+      6377 0727b15817f2a6f543d5d29504f204741173f3d d35
+      3a a202b1c 03b1f164b232c884136c65f40b88835abb12b
+      93cc63adce51c7d03fded64df5dc5bece950e4f745e1f584
+      dee5b192d0b7bfc8c5edc0d4edc3bbedc7a2cab88897a17c
+      536440464d3c39373822252e c1325 61019 0 d e 01f d
+       024 0 f521c1c5f3d2a6c5e338e7d3cb09d4fded85aeeca
+       ebfad a9689 66e65 35454 03b44 e162d 3 617 0 a c
+       011 3 022 0103b112054233561384a6f4e79a35184ba7e
+      83a2b67fb4d17bc6ed6ed9e061edd350fad622fbe6 0f1fc
+      3dece567d2da77b2d58892d09287c993919f84727e7c7c72
+      55757456656a5855605e536064526091597e8a467761 888
+      3c 56a124b3c135232145a281a5b212b48 83241 02f3c 0
+      242c 71432 3 439 0 234 0 030 0 02f 0242e 0 727 0
+       02813 f452d124a2d164f2e27403d5135658c1cc9bc2cbf
+      b9438f8e467863496246382f2f1a1f1d181f1922 d1212 0
+       4 d 0 018 2 119 1 31b 0 f23 8242c212a2835262138
+      1e324d163342 e343719331a242a102a1f 92d 5 d24 b e
+      161712 0281a 2313b d2b47112f49102449 f102c f 913
+       021 0 e2c 51d38 b3c4e128a8821b7a0 4d4c921a9bb27
+      7bc5289eaa48a1b05b9ab07fa2a787a393adb868a387548f
+      8a92b95c8bb75d95c873b9b77dbab577958b738b6b5e8f71
+      6aa47491afa792e5bbccecadcdf09eb7c681ba9f81a7a771
+      768a426b5c3b4c4822203e26145c2e3b604186895c98cb90
+      88c8b07af2aa5ef5b055f1b44bff937bdb53c2d629f8f5 0
+      d2ec29cfdb55dad56fbec97ab1c58684c8b370bed24abfc6
+      28b4b5 05f862b435b122256121735 0 325 c b2a3a 33c
+      56 0546a 08675 a94c423b1b634ca8722c059 68813213b
+   </palette>
+   <edit date="Sat May  7 14:00:24 +0100 2022" action="random recentered improved colors"/>
+</flame>

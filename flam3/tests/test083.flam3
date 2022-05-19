@@ -1,0 +1,41 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="83" size="640 480" center="1.7151 -0.504543" scale="124.369" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" exponential="0.236575" oscilloscope="0.344786" csc="0.180935" oscilloscope_separation="1.53625" oscilloscope_frequency="-1.14431" oscilloscope_amplitude="1.79209" oscilloscope_damping="0.747733" coefs="0.796956 -0.00768364 0.340638 0.0598354 -0.479261 -0.46304" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" polar="0.18985" bubble="0.384355" wedge_sph="0.288555" csc="0.137241" wedge_sph_angle="0.0467543" wedge_sph_hole="0.494859" wedge_sph_count="2" wedge_sph_swirl="0.275252" coefs="0.564843 -0.803373 0.986013 -0.180304 -0.358393 -0.89963" opacity="1"/>
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" perspective="0.077913" rectangles="0.318878" popcorn2="0.321107" wedge_sph="0.131925" cot="0.141945" perspective_angle="0.923069" perspective_dist="2.32787" rectangles_x="0.540691" rectangles_y="0.60543" popcorn2_x="0.130311" popcorn2_y="0.0899188" popcorn2_c="0.620769" wedge_sph_angle="3.06648" wedge_sph_hole="-0.243025" wedge_sph_count="1" wedge_sph_swirl="0.970951" coefs="-0.473323 0.477818 -0.975323 0.326086 -0.201719 0.189738" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" blade="0.736984" foci="0.263016" coefs="0.188546 -0.171425 -0.531421 -0.333635 -0.146748 0.794666" opacity="1"/>
+   <palette count="256" format="RGB">
+      648694587b8a5274834c6e7d496a79466675456573456472
+      40616e416270436473446776466a7a476c7c486e7f486e80
+      486e81486e81496f824b71834e7384517686537888557b8a
+      5c82915f8593638896648a99668d9d68909f6a93a26f9aa8
+      739fad7da8b37da7b17da6b079a0a9769aa273959d719198
+      627b835b727a5469714f636a4b5d63495b6148596045565c
+      435359445055424c5040494c3c4447394043373d41353b3f
+      2e34392c33372b32362c33372e343830363a33393d384043
+      40484b535c5f5d66696871736c7578717a7e7a83867e898d
+      8a959a909b9f97a2a59faaaca7b3b4abb7b8afbcbdb8c5c5
+      bdcdcecadadbcfdfdfd4e4e4d5e5e5d6e7e7d8e8e9d8e8e8
+      d7e7e7d5e5e5d3e3e3d2e2e2d1e2e1d0e0e0d0dfdecfdedd
+      ceddddccdbdccbdadccad9dccad8dacad7d9c8d4d6c3d1d4
+      b8c7cbb1c0c4aab9bda6b5b9a2b1b69baaaf93a3a98d9ea4
+      8799a07a8d96778c95758b957289946e89946c88946a8995
+      6788956688956588956487946486946182905f7f8f5e7e8e
+      5d7f8f6284936486946788966b8b9a6f8f9d70919f7192a0
+      6b8b9a658392607b8a5b76855771805069784a626f465b68
+      4356633f52603f5260405361425764445a68455d6c445e70
+      436074436074436175436275436275436174415f73425f70
+      415e6f3f5d6f3f5d6e3f5d6e3f5c6d3f5c6d405b6b3f5a6a
+      3b5363395160384f5e354a593245532e404d2a3b48273642
+      24323e232f3a212d38212d37212d37212d38222f3b24323e
+      273747273849283a4b2a3c4f2b3f522d41542f445733485b
+      384c5e3d5163435768495e6e4f6474566b7b5c7181637887
+      697d8d6e82917388967a8e9b7f94a0869ba48ca1aa92a7af
+      97adb39cb1b69fb3b7a1b3b59eaeb299a9ac94a3a68e9ca0
+      88969a8292967e8e947b8d94798d95798e96788f96788d96
+      778a9376879076858c758289748087747f8675818776848b
+      7a8992809299869aa18ea2a993a8af98adb49cb0b79db1b7
+      9baeb498aaaf95a4aa90a0a68e9ea48a9ba185969c809198
+      7b8e95778c94758c95738c95708b956e8a95688893668794
+   </palette>
+   <edit date="Sat May  7 14:00:22 +0100 2022" action="random reframed2 trunc 2 27"/>
+</flame>

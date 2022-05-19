@@ -1,0 +1,47 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="86" size="640 480" center="2.41892 -0.0443028" scale="61.1922" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <symmetry kind="-6"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" julia="0.254154" perspective="0.644963" cosh="0.100884" perspective_angle="0.299245" perspective_dist="1.43381" coefs="0.70933 -0.110825 -0.570063 0.988357 -0.829543 0.489746" opacity="1"/>
+   <xform weight="0.333333" color="1" color_speed="0.5" animate="1" julia="0.254154" perspective="0.644963" cosh="0.100884" perspective_angle="0.360272" perspective_dist="2.41943" coefs="-0.469613 -0.938431 -0.399944 -0.179693 0.227936 0.95729" opacity="1"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" julia="0.254154" perspective="0.644963" cosh="0.100884" perspective_angle="0.216029" perspective_dist="2.28472" coefs="-0.0110124 -0.651108 -0.586983 0.28163 0.725444 -0.86639" opacity="1"/>
+   <xform weight="1" color="1" color_speed="0" animate="0" linear="1" coefs="-1 0 0 1 0 0" opacity="1"/>
+   <xform weight="1" color="0" color_speed="0" animate="0" linear="1" coefs="0.5 0.866025 -0.866025 0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.25" color_speed="0" animate="0" linear="1" coefs="-0.5 0.866025 -0.866025 -0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.75" color_speed="0" animate="0" linear="1" coefs="-0.5 -0.866025 0.866025 -0.5 0 0" opacity="1"/>
+   <xform weight="1" color="1" color_speed="0" animate="0" linear="1" coefs="0.5 -0.866025 0.866025 0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.5" color_speed="0" animate="0" linear="1" coefs="-1 0 0 -1 0 0" opacity="1"/>
+   <palette count="256" format="RGB">
+      9d515389465b7d405b713b5c6b375b65345a653459653458
+      783e5f8243608c4961934d609b525fa15660a75a62a85b63
+      a95d64ac5d6aab5f72aa627aaa6584aa698fa86c94a76f99
+      a3719da3709aa46f98ae7599b87c9abe839dc48aa1d198a3
+      daa3a5dda498dd9f8dde9a82db937cd98c77d68a75d48873
+      bf7b71b2716fa5686e985b708c4e7287497082446f783d6b
+      6e386b5e35695c346c5a346f61356e68376e6d386d733a6c
+      88446291475c9b4b56a34b50ab4b4bad4a49b04a47b24a44
+      b14a44a64b4ca0494d9a474e97444d94424c903f498b3d45
+      79384d7338546d385b703b60743f657b4364834863925666
+      9f626bae797bae8086ae8791b18893b48a95b88f96ba9096
+      b89093ad8b93a286949d8193997c9392748c8e69858f627e
+      905d77955f6f9b6972a17376a47779a87c7db38485bc8b8f
+      cd96a2d49dabdba5b5daa9badaaebfdab7c5dbbdc9debecc
+      ddbfcfe0c1cfdfc0cddec0cbd8bfc8d3bbc3cbb1bbc2a6b0
+      b395a3ac8d9da68598a58396a58195a2798f9e6d869b627f
+      9a5a799c526ca1546aa65668b05d66ba6466c56d68cb776c
+      cf817ac97e80c37c86bd7888b8748ab06e8ca76b8ca46a8b
+      a66c8aae758baf768cb0788db1788cb0798db27a89b77a82
+      c87e75c97e74cb7e73c97f72c07e75b67d79ab787ba27079
+      9d6772945060934b5c924758914253904050933f509a434e
+      af4f4bb5524abc5649ca5e49d56549df6a4de47051e77857
+      e67e5fdf826ad78474d18578c8807bbc797cb0727da86c7a
+      975f78975e77975e769a5b739b576e9b51699b4e629a4757
+      964150943e4a943c45943c41973b3d993b3b9a3a3b983739
+      9636379634369534379636389a3939a13f3ca9443eb1493f
+      bb4c3fc44f40ca5141cf5142d25242d35442d05343ce5242
+      cc5042c94d40c4483fbc423db33e3ba83b3c9d3940943744
+      8f38488f3b4b913e4c97414d9c474f9f4d53a1525aa55860
+      ab5c64b36165be6265cc6561d96a5de46e5eeb7260ef7864
+      f08069f1866ef3896ff4896df58a6bf58768f38464f18363
+      ef8664ec8867e98868df8264d47a60c8705aba6456ac5852
+   </palette>
+   <edit date="Sat May  7 14:00:23 +0100 2022" action="random reframed2 improved colors"/>
+</flame>

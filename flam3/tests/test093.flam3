@@ -1,0 +1,41 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="93" size="640 480" center="-0.586027 0.558828" scale="105.104" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" lazysusan="0.372086" sinh="0.627914" lazysusan_x="-0.838375" lazysusan_y="-1.97477" lazysusan_spin="-2.9971" lazysusan_space="1.91486" lazysusan_twist="-1.91482" coefs="-0.355866 -0.223167 -0.495221 0.446802 -0.834973 0.259817" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" lazysusan="0.372086" sinh="0.627914" lazysusan_x="-1.86905" lazysusan_y="-0.0472217" lazysusan_spin="0.358282" lazysusan_space="-1.94987" lazysusan_twist="-1.67564" coefs="-0.647563 0.823428 0.819001 0.359977 -0.698999 0.379847" opacity="1"/>
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" lazysusan="0.372086" sinh="0.627914" lazysusan_x="1.00099" lazysusan_y="1.58061" lazysusan_spin="1.38658" lazysusan_space="1.33104" lazysusan_twist="0.100249" coefs="-0.130188 -0.505877 0.350426 -0.276338 0.285528 0.994561" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" lazysusan="0.372086" sinh="0.627914" lazysusan_x="-1.42785" lazysusan_y="0.589942" lazysusan_spin="-2.54962" lazysusan_space="-0.722978" lazysusan_twist="0.236799" coefs="-0.916822 -0.24327 -0.866778 -0.759921 0.337542 -0.854163" opacity="1"/>
+   <palette count="256" format="RGB">
+      17 a 43f261b906e55948349908856a3835ab09260c0a366
+      c19d72c1a182c1a893b5a99ca8a99692a09e82939b789fa2
+      79a19270969857798e5c748a778a8e838e839a9e6e9c9a65
+      ab9763aa9354a6834c98804b957a3f6d53301a 8 718 6 4
+      13 7 611 3 2 9 2 2 4 b 61a14 6577555759775918a71
+      8f8457816b421c a 716 7 81e f c5c6f6d547589546f92
+      6e8b997e9d8d99a08497a578a4ab7aaba76faaa968b19568
+      ba8f5db0944da09741af964ba98d3da36c3d84562320 9 1
+      2214 5806d389f724eb17553ba8153b88359c18663bb955b
+      c08f64c79a6cc99c77c9a979caae80c9b285d5b785ceb389
+      d2b389dbb48adbb685d8b986d8b989ddb890ddc193ddc09e
+      dbbb9fddbea5ddc4a7dcc5acdcc8a5cec4a5c4bfa7c3b8a6
+      c0b2a7a6b2ada0b3a79ea8a195a5a494a4a790aaaa8ea5b2
+      7999ab718aa05e7793596e8c34313617 a 7 e 5 0 6 1 0
+       9 2 113 8 71a 8 63622 e967a289394398f953d9b9145
+      b08f45c29742c79240c5913cb59143b28b48ba8e4cb79348
+      b99a50be9c54bfa863afb368b5a878c3a985b7ae89c5a582
+      cea67ed3b085d1bc88d7b585cab87acdc577c3c073cbbe6b
+      d2ac6ed4bd6ecfc06abfbe65b6ba5caeb74ea8b34f9eaf4b
+      9da64591a44081a35b5e926a433a1d18 b 61a 9 65f4f2a
+      79816092a15ca6b958acb152b9b84cb8bb55b3b156bdaf61
+      cbb164c7a86ed3a470d0a27bcaa679d2a486cfa793cfa987
+      cfa982d6ae7dd2ad7acdac7dcab27cbbb278b8b675cbbb5f
+      d1ba5ed9c165d5af5dd0ab57d0a550cd9e4fc1a04fc0a250
+      cbb455c7bb52d9c65adcc962e2cc69ddbe67dec878debf7f
+      eac886deba7addba85dbba87d7b982cebd82ccb98bceb792
+      c8ae90cab192c1b696bbb89ab5ae99c2b895d2b298d1b59d
+      d8bc92d6bf92d8c493dfc597e2c69adfcf9cd7cba6ddcca4
+      dec3b1edccb1dfc8abe6ddbbe2dbbfd9d0c3fffae8d2c9b5
+      d9d1a7e6d0a1e3d09ee0cf99e2ca9ce3c4a1dfbfa5e0be9f
+      dbc4a2d7c6a3d4c0a7d3bfa0cec4a1cec3a5cfbaa5c8bea6
+      c7c2a0c6c58fb3c88dabab829b937893876f86724a2210 7
+   </palette>
+   <edit date="Sat May  7 14:00:26 +0100 2022" action="random reframed0"/>
+</flame>

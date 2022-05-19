@@ -1,0 +1,42 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="91" size="640 480" center="-0.282471 -0.188891" scale="93.6712" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <symmetry kind="-2"/>
+   <xform weight="0.5" color="0" color_speed="0.5" animate="1" blade="0.32313" elliptic="0.312949" sinh="0.363921" coefs="-0.714261 -0.736959 0.725351 -0.971027 0.667145 -0.325204" opacity="1"/>
+   <xform weight="0.5" color="1" color_speed="0.5" animate="1" blade="0.32313" elliptic="0.312949" sinh="0.363921" coefs="-0.67702 -0.637574 0.551339 0.181185 0.796405 -0.45104" opacity="1"/>
+   <xform weight="1" color="1" color_speed="0" animate="0" linear="1" coefs="-1 0 0 1 0 0" opacity="1"/>
+   <xform weight="1" color="0" color_speed="0" animate="0" linear="1" coefs="-1 0 0 -1 0 0" opacity="1"/>
+   <palette count="256" format="RGB">
+      916854b26f4bca7b4bc67f4b81705554482528281c141012
+       b 41c c 41c17181c 05d8d 06da0 47aaa 786b3138abc
+      188eb31f97b32c9eb334a2b381757abe8967d69842ce8325
+      ca771cc66a 9c25a 9a62b 98512 04813 93c1312241c 9
+      242412343c25 06596 06d96 06d96 06996 0618d142412
+      1018 9 8 8 9 c 4 9 c 4 9 b 4 9 8 4 9 4 4 9 7 4 9
+       8 0 9 c 0 9 f 0 910 41213 c1c 0598d 061a0 065a0
+       065963c3c25441f12691e 9aa50 9c65a 0b243 0851e 0
+      48 f 924 c1217 8 910 4 913 8 91b1412342c25 46996
+      3ca2bcadada0c6a597c29471daa054de9954d6842fd27b25
+      ca6f1cda761cca772f956855587471 471a0 076a0 07aa0
+       07aa0 07aa0 07aaa 47aaa 076aa 072aa 06da0 06596
+      2c3c1c1c24 91410 910 8 9 f 4 9 c 012 b 012 8 012
+       8 012 c 4 9 f 4 914 4 91c c1224241234342f 06196
+       06596494942403c2530381c40402f 06996 076a0 47aaa
+       87eaa 482aa 486aa 082aa 07eaa 07eaa 07aaa 072aa
+       069a0 05d9610201c10 c1213 8 91414121c2c1c 0618d
+       476a0178eb32c9ebc3ca6c53ca6c544aac548aac548adc5
+      60b1bc959167d68f4bd27f2f9a632544441c2c2312181412
+       f 812 7 412 4 012 3 412 7 412 b 41213 81220241c
+       06996188ab348aebc95bec5cedacfd2decfdad2cfdadac6
+      dad2c6c2c2aac2b5a08d896771514b48542534441c34301c
+      44401c5150258d582fc26a25ce6a1cce6e12ce6e 9c26212
+      ae572560585e 47196 c86aa138eb31f93b32797bc309ebc
+      30a6bc30a2bc2b9fc52797c61b93bc178eb3148ab31386b3
+       882b3 47aa0 46da0 061962c24251f101217 81217 812
+      1b1c1c 05d8d 06996 0618d3027251c1c122018 92c f 9
+      3c1b125d37259a5425ba621cba66 9aa571249501c283412
+      282412302312403c12954b 0c25e 9c662 9d669 0d262 9
+      d26512c67025be6b386c6c5e 46996 069a0 06da0 069a0
+       065a0 0598d b 825 b 41c b 412 c 41214 81224 c12
+      4013 94d b 06d13 0a9 e 9954312555542187196239bbc
+   </palette>
+   <edit date="Sat May  7 14:00:26 +0100 2022" action="random reframed0 improved colors"/>
+</flame>

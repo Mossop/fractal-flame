@@ -1,0 +1,42 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="98" size="640 480" center="-0.381135 -1.35813" scale="98.8318" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.2" color="0" color_speed="0.5" animate="1" arch="0.149223" polar2="0.850777" coefs="0.920121 -0.92953 -0.46114 -0.824194 -0.177648 -0.672672" post="-0.214565 0.631903 0.680366 -0.453448 -0.0460923 -0.415772" opacity="1"/>
+   <xform weight="0.2" color="1" color_speed="0.5" animate="1" wedge_julia="0.59762" exp="0.40238" wedge_julia_angle="3.01178" wedge_julia_count="3" wedge_julia_power="2" wedge_julia_dist="1" coefs="0.55806 0.326219 -0.942213 -0.296137 0.0330932 -0.243574" post="-0.151797 -0.398489 0.579404 -0.611384 0.791713 0.775831" opacity="1"/>
+   <xform weight="0.2" color="0" color_speed="0.5" animate="1" ex="0.404377" curl="0.595623" curl_c1="0.410099" curl_c2="0.728544" coefs="-0.0675078 -0.907437 -0.297208 -0.435605 0.772929 0.249344" post="0.518303 -0.642843 0.840743 -0.0823722 -0.539114 -0.357126" opacity="1"/>
+   <xform weight="0.2" color="1" color_speed="0.5" animate="1" wedge_sph="0.500028" flux="0.499972" wedge_sph_angle="1.35107" wedge_sph_hole="0.334712" wedge_sph_count="5" wedge_sph_swirl="0.189212" flux_spread="0.506645" coefs="-0.972246 0.421709 0.0364915 -0.58363 0.213422 -0.187677" post="-0.762199 0.253093 -0.961303 0.979352 0.363233 0.803932" opacity="1"/>
+   <finalxform color="0" color_speed="0.5" linear="0.659387" pie="0.340613" pie_slices="5.47385" pie_rotation="-0.131662" pie_thickness="0.245105" coefs="0.689588 0.296051 -0.512533 -0.667539 0.771739 -0.725428" opacity="1"/>
+   <palette count="256" format="RGB">
+      83594272563e6b5840655b425b594051573f4d553d49533c
+      37422e38432f3a4531474b3555523962583d705e41735f42
+      7761448164478164478265478664478a63488b62478c6147
+      8a58417d513c714b3768473660443560453760463a654c40
+      715548886954906e5798735ba17a61aa8167af8469b4886c
+      cb9b77d39f79dba47ce1a67ee7a981e8ab83e9ae86eab38e
+      eab996ecc6a9edcbb1efd1baf0d6c2f1dccbf1decff1e1d4
+      f0ece4f0ede8f1efedf1efedf1efedf1efecf1efecf1f0ec
+      f1f0ecf1efebf0ece4efeaddeee7d8eee4d4ecdec9ead6bd
+      e2c0aadab39dd3a691cb9985c38d79c18973c0856dbf7f61
+      bf7a5db77259b16d57ab6955aa6753a96652ab6753b36b55
+      be785dbf7e60c18464c08664c08864bf8b67c48d69cb8e6c
+      cf926fd19c79cb9d78c59e77c29c76bf9a75b99372b38a6e
+      ac7e68a87d66a47c65a47c65a47c65a47d67a57e67a77e68
+      ab7f6bb3846fb5856fb8866fb88771b5866fae856ca48469
+      8f7d5d847355796a4d7264486c5e445f523b52483546442f
+      40432c454a2e4a4d314f50345d563b6b5a4278614a856850
+      a17a60ae876dbc947bc39c83caa48cd5b39ce0bfaae9cbb6
+      efd1bff4dfd0f4e3d4f5e7d9f5eee2f6f3e9f5f9efeffaed
+      e7f0dce4ecd7e1e8d2d9dec7d2d4bbccc7b2c1bba5b5ac96
+      ad9f869f8a6f9c876a998465997f61997d619a7c629d7f64
+      ab8e79ae937eb19983b9a790c2b49ec9c0aad0c8b2d9d3be
+      e1dbcae8e1d0ece4d3efe6d4eee9d8eee9d8eee9d8edecde
+      ededdeedecdbeeebd9ebecd6e9ecd4e6e8cde3e5cbe0e2c8
+      dfdfc6e0d8bfdfd1b5deccaedcc1a2d9b795d6ab88d49d7c
+      d29272cf8868cc8161c4775bb76f54a9684c9e5f46975c45
+      925e4793644b966d54977a6198866e978f789a9a849ca58e
+      a5ab93b2b397c1bd9ed0c5a5d9caaae2cdafe4d0b5e5cbb2
+      e1c4aadbbd9fd6b695d0ae8acda882c8a580c4a37fbea181
+      b7a07fb19f7eab9d7da89d7ca99f7baa9f7bad9f7dad9f7c
+      ac9e7ba99b7aa59675a39470a28c69a38363a37c5ca37456
+      a46e52a2674e9e664b9d6c4d9b6b4e996a4d906448895e44
+   </palette>
+   <edit date="Sat May  7 14:00:28 +0100 2022" action="random recentered improved colors"/>
+</flame>

@@ -1,0 +1,41 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="87" size="640 480" center="0.144871 -0.464457" scale="157.855" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" elliptic="0.688502" sinh="0.311498" coefs="-0.942447 0.841262 -0.369859 0.799453 -0.63554 0.129074" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" bent="0.868658" exp="0.131342" coefs="-0.0145642 -0.699159 -0.763822 -0.0289245 0.238949 0.262102" opacity="1"/>
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" lazysusan="0.467318" cosh="0.532682" lazysusan_x="1.56255" lazysusan_y="1.36827" lazysusan_spin="2.90545" lazysusan_space="-1.17717" lazysusan_twist="0.967177" coefs="0.403514 0.482614 0.95522 -0.897583 -0.55443 0.70873" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" pdj="0.332463" bent2="0.142964" polar2="0.387955" popcorn2="0.136619" pdj_a="0.00214691" pdj_b="-1.10462" pdj_c="-2.76916" pdj_d="-1.55001" bent2_x="-0.619482" bent2_y="-1.23096" popcorn2_x="0.0928899" popcorn2_y="0.0295742" popcorn2_c="4.01587" coefs="-0.710707 0.540491 0.674834 0.632188 0.963199 -0.589871" opacity="1"/>
+   <palette count="256" format="RGB">
+      814151987a65a48468b08c6bbaa177c5b783cabe88cfc68e
+      c1b8a0b29d96b38c92b198ad9b8db09895b79ea5c3a6adbf
+      aeb6bbc6c1a9bebda8b3b6a7adad9da5a394aaaa91afaf8f
+      b7ac84b49b7db18b77ab8b7ea88c86a79388a99b8aaba384
+      aaa6919792a0888a957f878c6c7284595e7d4e507645446f
+      4c154e422c3f3e4337393a49332f5938355e3c3b64645166
+      724d479172529b8067a58c7cb0a17cbbb47cb1a079a78b76
+      a98083ad8481b18d82b09385b19a88a99686a192858b8580
+      8b64658a26328f354a9445619a4c66a1536aaa5576a54a6d
+      72225369205760145954154148 a253b 61f2e 31a40 01f
+      4c e29581c1d6c2c34803c4b824359844a6581566d894658
+      97376484264f7116396c1d406725488836528e5b6d9c859c
+      a4a38fb8aa9fbcbea3afc59cb2be9eb4b89eb2b29ab9b381
+      b1ac60a797649d8368a2856da78873a27e73a06c71a7607a
+      af57769b5d6f9b6a819c7595936ea57458a0717194829193
+      8c9a7c748371667572686e7165636e58556148506a3f4d66
+      44455e8736608c3963913c678936637f335f77325a873061
+      a13a639a3c66943f6a903e628d3e5a802d376e2a29684329
+      786a2f8683657b796e717178716d7f645d7366547b964b69
+      945c5c9c5655a5524ea55f61a76872a07472997473947267
+      89605c7a44487a39397a322e8b393a8e4f4a9f5666ab5c67
+      b56284b36484b16684b36272a37a7a9f89849f9a858f8a89
+      7c808a7d73837a798c8287a29099a799a0a89f9aab9a95b2
+      acb2a59faa9e98a49da4a489a5997da191709b856d9a8561
+      886e517f6956746868666a64605d705c4f77545c7b526071
+      515e6857676757636e5552705d5d6e66727d6d7c89707b8e
+      7a848e7f788d6f668d616a8a656a82626c73405647416336
+      433a4a581a4474 63a751139681b32802640913b52ad4f73
+      b95e86c9719cb36f81ab8db4a99cb8a99fb8b4a9c0b8b6b1
+      c2b6a5d7d09ad6c993dcd48ab7a6778f614e703a2d712532
+      732e3e4a40623e39795842815a4c7e71548d937788939196
+      8e94a0989886a09364a1914e8d764c88604d91524a995165
+   </palette>
+   <edit date="Sat May  7 14:00:23 +0100 2022" action="random reframed2 improved colors"/>
+</flame>

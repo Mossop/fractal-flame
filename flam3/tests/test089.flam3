@@ -1,0 +1,39 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="89" size="640 480" center="-0.937925 -2.32325" scale="139.572" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.5" color="0" color_speed="0.5" animate="1" spiral="0.215927" perspective="0.329633" oscilloscope="0.0753554" wedge_julia="0.379084" perspective_angle="0.658308" perspective_dist="1.4282" oscilloscope_separation="0.243639" oscilloscope_frequency="-0.635972" oscilloscope_amplitude="1.30795" oscilloscope_damping="0.80071" wedge_julia_angle="0.60287" wedge_julia_count="1" wedge_julia_power="3" wedge_julia_dist="1" coefs="0.385969 0.8854 -0.831524 0.194701 -0.479367 -0.340139" opacity="1"/>
+   <xform weight="0.5" color="1" color_speed="0.5" animate="1" spiral="0.215927" perspective="0.329633" oscilloscope="0.0753554" wedge_julia="0.379084" perspective_angle="0.375157" perspective_dist="2.00334" oscilloscope_separation="0.555331" oscilloscope_frequency="0.851206" oscilloscope_amplitude="2.6632" oscilloscope_damping="0.87497" wedge_julia_angle="0.187401" wedge_julia_count="2" wedge_julia_power="4" wedge_julia_dist="1" coefs="0.0489244 -0.625051 0.97466 -0.135086 -0.165131 0.36063" opacity="1"/>
+   <palette count="256" format="RGB">
+      51531a485014434e113f4d e3d4c d3c4c c3c4c c3c4c c
+      394b a394b a394b a394b a394b a374a 9364a 8364a 8
+      364a 8364a 83a4b b3f4d e454f124b51164c51174e5218
+      54541c55541d57551e57551e57551e55541d54541c4e5218
+      4850144b51164e521851531a52531b54541c54541c54541c
+      54541c51531a4e52184b5116485014464f13454f12424e10
+      424e104850144950154b51164c51174e52184e52184e5218
+      4b5116495015485014485014485014485014485014485014
+      485014485014485014485014485014485014485014485014
+      4b51164e521851531a4e52184b51164b51164b51164e5218
+      51531a51531a52531b54541c54541c54541c54541c51531a
+      51531a52531b54541c57551e5a56206c5c2c906844ba7660
+      bea3ba49caf777bae0a6abcaafa8c4b8a5bed09daefd8e90
+      ed8782b5745d7e6238725e30665a2857551e51531a4b5116
+      485014485014485014485014485014454f12424e103f4d e
+      3c4c c3f4d e424e10434e11454f12454f12454f12485014
+      4850144850144850144850144850144850144850144b5116
+      51531a57551e5d57226a5b2b7860348d6742ba7660d09dae
+      c7a0b4fa8f92fb8e91fd8e90f19298c1a2b8aca9c6a3accc
+      b5a6c0bea3bac7a0b4e1837a9f6d4e78603460582457551e
+      57551e6359266d5c2d78603425d6df22d7dd1fd8db1cd9d9
+      22d7dd2bd4e334d1e993694681633aae7258db8176f08884
+      f68a88c7a0b4bea3babba4bcc1a2b8b4745c84643c6f5d2e
+      5d57226459276c5c2c87653eb4745cea8680ea8680ab7156
+      84643c6c5c2c5a562051531a485014424e103c4c c3c4c c
+      3c4c c3c4c c3c4c c3f4d e3f4d e3f4d e3f4d e3f4d e
+      424e10454f12485014485014454f12424e103f4d e424e10
+      454f12454f12454f12485014485014485014485014485014
+      454f12424e103f4d e3f4d e3f4d e3f4d e3f4d e424e10
+      454f12454f12454f12454f124850144850144b51164e5218
+      51531a54541c54541c54541c51531a4e52184b5116485014
+      4850144b511651531a57551e695b2a7b6136d88074966a48
+   </palette>
+   <edit date="Sat May  7 14:00:25 +0100 2022" action="random reframed2 improved colors"/>
+</flame>

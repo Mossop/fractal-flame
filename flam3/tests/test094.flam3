@@ -1,0 +1,41 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="94" size="640 480" center="0.211222 -0.162498" scale="236.575" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" ex="0.23579" fan2="0.76421" fan2_x="-0.988126" fan2_y="-0.234168" coefs="-0.00847799 0.975235 0.592455 0.435875 0.0644195 -0.13951" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" ex="0.23579" fan2="0.76421" fan2_x="-0.205405" fan2_y="0.289536" coefs="0.0434181 0.593794 -0.632775 0.15095 -0.0683165 -0.465636" opacity="1"/>
+   <xform weight="0.25" color="0" color_speed="0.5" animate="1" ex="0.23579" fan2="0.76421" fan2_x="-0.345042" fan2_y="0.646322" coefs="-0.573098 0.699468 0.246448 0.393306 -0.390067 0.184735" opacity="1"/>
+   <xform weight="0.25" color="1" color_speed="0.5" animate="1" ex="0.23579" fan2="0.76421" fan2_x="0.541655" fan2_y="0.431836" coefs="-0.497999 -0.0211084 -0.362156 -0.522764 -0.428654 -0.926281" opacity="1"/>
+   <palette count="256" format="RGB">
+      baa0b6be85a6bd799ebc6e97c26897c96398ca6699cc699b
+      ca85a9d094b4d6a4c0d2aec2cfb9c4c8c1c4c1cac4c3cdc7
+      c6d1cbc6cecbbfc6c3b9bebcbbbdbebdbdc0c1bbc2c5bac5
+      d3c5d1d9cdd8e0d6e0e0d4dfe0d2dedcd0dad9cfd7cecbcf
+      c2c6c6a5a8a8969c9a87908c808b867a87807a867f7a867f
+      8189897f8f8f7d969678939874909b708b996c8697607690
+      54668346476d443963432c5a4522504819464b1b464e1d47
+      6037566643616c506c695e75666c7f6470816374835e7483
+      556f804f5c73564e695d40605d395b5e32575a2850582850
+      5d385e5e3c60604062584a6050545f4b5b634662683e6971
+      3a6c75386b6e3b656f3e60703f5a714055733f49753b4171
+      32325c2f28522d1e492c1a462c17432c12442a f422c1243
+      311a4c4b31665b38776c3f89724590784b97835b9e896ca3
+      9882af9b86b09e8bb29c8ab09b89af9a80a89a7aa29a739b
+      9c6a93934c899046878d40868b37858b36838b3d81873e7f
+      80437f81498283508583548584588583628380657e7f657a
+      7c5d736e466568405e623a5856334e4729403d1d3736132f
+      38 62438 c253913273a192b3c20303f2a364d37445d3e51
+      674c60756b7678737b7b7b818284888a8a8f909196949499
+      999b9f9a9c9f9b9da09a9da2989ca1939aa08c98a18695a0
+      81939f818d99818a97828896867e958774938a65898e557e
+      96416e97416f9942719b4172963c6c8d31627a2e596c3353
+      603f5253494e4a464439413b2d3e322840312c4b38395540
+      596f5e6578697182758a9890a2aaa7b4b8b8bdbfc0c2c4c8
+      c0c6ccb9c5ccacbec999b1bf88a3b67698ae6890a85e8ca5
+      548aa35187a25188a45189a55187a54e839f4b74974b648f
+      4c57884b4c85474d80444b7e4448804e4c835e528c6d6594
+      7a7a9d888eae99a7bdafbacdc3cadaced8ddd1d9dccbd7d4
+      c0cdc8b2b9b89da7a7848e916b767754626343464f393249
+      35254b39204d4327544c3158513a635647715851805b5c8b
+      5863915168914d6f914a71904d778e5276915a7b9465849c
+      778ea38ba0ac9dacb5a9b3b9adb5baadb2b6aeafb6b3aab8
+   </palette>
+   <edit date="Sat May  7 14:00:26 +0100 2022" action="random reframed0"/>
+</flame>

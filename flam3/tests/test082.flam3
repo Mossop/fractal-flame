@@ -1,0 +1,40 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="82" size="640 480" center="-0.4248 -0.543159" scale="435.347" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" waves="0.483936" super_shape="0.241043" parabola="0.275021" super_shape_rnd="0.3942" super_shape_m="0" super_shape_n1="6.07628" super_shape_n2="6.08918" super_shape_n3="6.08918" super_shape_holes="0" parabola_height="0.842421" parabola_width="0.753424" coefs="-0.199465 -0.930984 -0.946024 -0.344976 -0.883096 -0.0101344" post="0.59361 0.156299 -0.440001 0.563739 0.182896 -0.807931" opacity="1"/>
+   <xform weight="0.333333" color="1" color_speed="0.5" animate="1" cylinder="0.0794291" modulus="0.920571" modulus_x="0.803922" modulus_y="0.296506" coefs="0.78509 0.87173 -0.764501 -0.0445541 0.191014 -0.228609" post="-0.727118 0.991549 -0.159593 -0.673142 -0.353427 -0.0426889" opacity="1"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" modulus="0.422428" wedge="0.577572" modulus_x="0.507444" modulus_y="-0.753501" wedge_angle="0.706892" wedge_hole="0.390163" wedge_count="1" wedge_swirl="0.645214" coefs="-0.931209 -0.119514 0.421641 0.0123508 0.369592 0.316001" post="-0.36753 -0.842009 -0.501089 -0.0637164 -0.233092 0.183754" opacity="1"/>
+   <palette count="256" format="RGB">
+      6d72324b503c55583e6061417474438887468d9147939c49
+      b1af58b7b45bbeba5fc3bf65c8c46bc9c36ecac372c8c671
+      c7ca71c7c368c2bf64bdbc60b5b459adad53a1a24b959744
+      40a43040a43240a4345586456a69576b6d4c6c724280863e
+      838b3eacac52b3b15abbb662bebb64c1c167c1be65c2bc64
+      bbbc5eacac539d9c4988883d747531605e2a4c4823464225
+      373c2655614b7b8156a2a262b1b064c0be67c5c26acac66d
+      dadc79e3de8cece19ff5e7b0feedc1f7e6b8f0e0afead5aa
+      e1d583ccc86fd2cd76d9d37dddd584e1d88bead9a5ffeddf
+      ffe9e1f1e0bae4d793d6ce7fc9c56cc1bd65b9b55e9b9e4d
+      747e42133119122b2212252b1d2d3029353545543f5baa5b
+      94db8da9cc7abebe68c1c067c4c367c4c367c5c467c5c467
+      c5c467c6c666c7c767c8c868c7c867c7c966c7c767c7c767
+      c4c367c2c064c1bd62c0b95ec0b55bb6b55bb3b258a6a64e
+      9799459e9d4aa6a551aeae58b9ba5cbcbe5dc3bf64c4c366
+      c1c167c3c166c5c166c4c165c3c265c4c367c4c367c5c467
+      c5c467cbc76eccc671cec675d4c67fd8cb87e6d5a1f8e0c4
+      f2f7fdf8fbfafffff7fefff5fdfff4fdfff2f6f2e6ead5aa
+      dbd388cbc86bccca6acdcd69cdcf6cbedb6dd8f179dee57b
+      d5dc75d0d672ccd06fccd06fdee57be9db90eadba2e5d49e
+      e2d18bcec47fcec37ccfc379c4bd6cc1ba69c0b76aa0a378
+      8b91558e9762929e707e8b7965c16a5cbf6d52b34841a833
+      359e27359c263f5b32474f384c4f344a55334c592d2e9319
+      399e283ea22d43a733919848a5a54fb4b359b6bb5fbdbe61
+      c3bc6bbdc48090d5a695dbc3ade6e0c5ddabb7c69bcbc281
+      cdc475cbc770cbc869c8c868c7c767c6c568c9c56cc9c56c
+      cec576d0c47ad8c581d9ce90e5d0b1dbeedbfbffeeeffce0
+      ddebade3eb98e5db84dbd682d4ce7accc374aca87b979c7c
+      7580625e614c4b533e494e4753545869666185885b979a4d
+      a3a24fa8ad4994bc5948b34133a6312b991e25971e20961e
+      1381 e1380 d1d8b121a8513364d233d4b282c312d1f2c22
+      1c18 f1821 42e2a 437381939401e575e34666434737136
+   </palette>
+   <edit date="Sat May  7 14:00:22 +0100 2022" action="random reframed2 improved colors"/>
+</flame>

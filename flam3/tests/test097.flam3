@@ -1,0 +1,47 @@
+<flame version="FLAM3-OSX-v3.1.1-5-g7fb50c8-dirty" time="97" size="640 480" center="0.181835 -0.664286" scale="207.191" rotate="0" supersample="1" filter="1" filter_shape="gaussian" temporal_filter_type="box" temporal_filter_width="1" quality="10" passes="1" temporal_samples="1000" background="0 0 0" brightness="4" gamma="4" highlight_power="-1" vibrancy="1" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma_threshold="0.01" palette_mode="step" interpolation_type="log" palette_interpolation="hsv_circular">
+   <symmetry kind="-6"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" bubble="0.606862" exp="0.393138" coefs="-0.323976 -0.18206 0.0114913 0.0685547 -0.0670596 0.775142" opacity="1"/>
+   <xform weight="0.333333" color="1" color_speed="0.5" animate="1" bubble="0.606862" exp="0.393138" coefs="-0.539941 0.068657 -0.771497 -0.665443 0.214954 0.176009" opacity="1"/>
+   <xform weight="0.333333" color="0" color_speed="0.5" animate="1" bubble="0.606862" exp="0.393138" coefs="-0.380535 0.200806 -0.609683 0.787383 -0.554192 0.811639" opacity="1"/>
+   <xform weight="1" color="1" color_speed="0" animate="0" linear="1" coefs="-1 0 0 1 0 0" opacity="1"/>
+   <xform weight="1" color="0" color_speed="0" animate="0" linear="1" coefs="0.5 0.866025 -0.866025 0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.25" color_speed="0" animate="0" linear="1" coefs="-0.5 0.866025 -0.866025 -0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.75" color_speed="0" animate="0" linear="1" coefs="-0.5 -0.866025 0.866025 -0.5 0 0" opacity="1"/>
+   <xform weight="1" color="1" color_speed="0" animate="0" linear="1" coefs="0.5 -0.866025 0.866025 0.5 0 0" opacity="1"/>
+   <xform weight="1" color="0.5" color_speed="0" animate="0" linear="1" coefs="-1 0 0 -1 0 0" opacity="1"/>
+   <palette count="256" format="RGB">
+      f2d7f25b2110731b488c b7aa21690b821a6bf27aac72daf
+      cc2dccbe4ebfb370b3b29eb3b3ccb6ced0cbe7d4dfead9e1
+      eedee2ebe9f4efe4f0f3dfeeeedee3e9dad7e4d6d3e0d3d0
+      c4babac998bacf75ba7c48a0311b9434178536137720 160
+      232a4977883d999b52b1a468b2a389b4a3aeaf95c1ab87d8
+      c088f4cf7ff7e077fae178fae27afada7ff4d285efd0adef
+      e4cbe5edd7ebe2b0dfd78ad3cca1aec1b189bcb68ebbc094
+      b1c4a8aec2a7abc1a65c9c961285932a7181435c6f502a6f
+      5f2267676d5f838b66a0a96eadb380babd92cfcdb1ccdacf
+      c99fdfb183da9b68d6726aa54b727440685f36644f2a5630
+      1940152b48 c3c50134e591b4d61264b6932376344325d42
+      8b6d7ca074a1ae7bbfa478c39a75c89977c68b82b6817ca9
+      7987a49ca66b8c98567c8b42798039767431718338839250
+      8bad8995a0b9948ae69782e89a7aea9678f57784fc8594fb
+      9880fbcea7ecd7ade8e6b4e9dbccd1d7d0becdcaadbabe90
+      9ca66a86944f708234787f237d7a137773 c7571 7777712
+      60762858743d5f784f677d627184a59087c3b590dedea9e6
+      ebcefcd9abefc889e3cf87ecd886f6e5c2fcedd0fcf5d5fa
+      f6dff7f7e7f9f6e4f4f4e1eef2e0ebeddedee5d1cdd9d4c2
+      b2c3a3a4bb9a97b3917c758e6d4c9166537958478e613c9f
+      6540a3bc81c3cca3cdd7c5d3e2c8dbecd7ebedd8f1f8cef9
+      c791d7c279c9c262c0ab269e83239370 da2401c7f5a1f63
+      2c e3131112e 0 0 0 0 0 0 0 0 0 0 0 0 c b b342c22
+      8999599ca76cafb580c4c59dc8c9a5c6cdb1c9caa6c4c7a2
+      a993a9835b92813e95783c8162406730542d1c29 c 0 0 0
+       0 0 0 0 0 0 a3a 22647 a3d5e2037642b3a723b39664d
+      3c5447404d3157274e56206a312d544a2e4b444527482518
+      4f29 248261633301e24201b27311d163b11123b c 937 3
+      1743 6204a203c6f3969743f74976b8090908a7d8f93759b
+      ac6ca8d93ddcd94deae660f6db6ae2ae80d38c66cd4845be
+      2d33c7714aab9370b6bc81c9e28ae3e878f4de71f7e471f9
+      e46ffbe171f8dd7efcdec0f2dfd7f3f4dcf5efd9f4e0b1e6
+   </palette>
+   <edit date="Sat May  7 14:00:27 +0100 2022" action="random reframed2"/>
+</flame>
