@@ -390,7 +390,7 @@ pub(super) fn flam3_create_de_filters(
     /*                                                                       */
     /*    num filters = (de_max_width / de_min_width)^(1/estimator_curve)    */
     /*                                                                       */
-    let num_de_filters_d = comp_max_radius / comp_min_radius.powf(1.0 / curve);
+    let num_de_filters_d = (comp_max_radius / comp_min_radius).powf(1.0 / curve);
     if num_de_filters_d > 1e7 {
         return Err(format!(
             "Too many filters required in this configuration ({})",
@@ -428,7 +428,7 @@ pub(super) fn flam3_create_de_filters(
             comp_max_radius / (filtloop + 1).f64().powf(curve)
         } else {
             let adjloop = (filtloop - keep_thresh).f64().powf(1.0 / curve) + keep_thresh.f64();
-            comp_max_radius / (adjloop + 1.0).powf(curve)
+            comp_max_radius * (1.0 / (adjloop + 1.0).powf(curve))
         };
 
         /* Once we've reached the min radius, don't populate any more */

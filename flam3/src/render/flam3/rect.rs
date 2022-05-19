@@ -228,8 +228,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     //  necessary to appropriately perform the density estimation filtering
     //  Check to see if it's greater than the gutter_width
     let de_offset = if max_gnm_de_fw > gutter_width {
+        let delta = max_gnm_de_fw - gutter_width;
         gutter_width = max_gnm_de_fw;
-        max_gnm_de_fw - gutter_width
+        delta
     } else {
         0
     };
@@ -404,9 +405,13 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             * 268.0
             * batch_filter[batch_num.usize()])
             / 256.0;
-        let area = (image_width * image_height).f64() / (ppux * ppuy);
-        let k2 = (oversample * oversample * num_batches).f64()
-            / (cp.contrast * area * WHITE_LEVEL.f64() * sample_density * sumfilt);
+        let k2 = ((oversample * oversample * num_batches).f64() * ppux * ppuy)
+            / (cp.contrast
+                * image_width.f64()
+                * image_height.f64()
+                * WHITE_LEVEL.f64()
+                * sample_density
+                * sumfilt);
 
         if de.max_filter_index == 0 {
             for j in 0..fic.height {

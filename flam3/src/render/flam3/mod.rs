@@ -36,7 +36,7 @@ trait ClonableRng: RngCore + Clone {}
 
 trait RenderOps: Clone + Default {
     type Bucket: PanicCast + Default + Display + Clone + Copy;
-    type Accumulator: PanicCast + Default + Clone + Copy + Into<f64>;
+    type Accumulator: PanicCast + Default + Display + Clone + Copy + Into<f64>;
 
     fn into_accumulator(val: f64) -> Self::Accumulator;
     fn bucket_storage(nbuckets: usize) -> Vec<[Self::Bucket; 5]>;
@@ -176,7 +176,7 @@ impl Flam3IterConstants {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone)]
 struct Flam3DeHelper {
     max_filtered_counts: u32,
     max_filter_index: u32,

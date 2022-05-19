@@ -224,7 +224,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
 ) {
     let oversample = dthp.oversample;
     let ss = (oversample.f64() / 2.0).floor().i32();
-    let scf = !(oversample & 1);
+    let scf = (oversample & 1) == 0;
     let scfact = (oversample.f64() / (oversample.f64() + 1.0)).powf(2.0);
     let wid = dthp.width;
     let hig = dthp.height;
@@ -260,7 +260,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
                 }
             }
 
-            if scf != 0 {
+            if scf {
                 f_select *= scfact;
             }
 
