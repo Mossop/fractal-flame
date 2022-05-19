@@ -1,17 +1,30 @@
 use std::f64::consts::PI;
 
 pub trait Variation {
+    fn name(&self) -> String;
     fn weight(&self) -> f64;
 }
 
 macro_rules! variation {
     ($typ:ident) => {
-        #[derive(Debug, Default, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq)]
         pub struct $typ {
             pub variation_weight: f64,
         }
 
+        impl Default for $typ {
+            fn default() -> Self {
+                Self {
+                    variation_weight: 1.0,
+                }
+            }
+        }
+
         impl Variation for $typ {
+            fn name(&self) -> String {
+                stringify!($typ).to_string()
+            }
+
             fn weight(&self) -> f64 {
                 self.variation_weight
             }
@@ -42,6 +55,10 @@ macro_rules! variation {
         }
 
         impl Variation for $typ {
+            fn name(&self) -> String {
+                stringify!($typ).to_string()
+            }
+
             fn weight(&self) -> f64 {
                 self.variation_weight
             }
@@ -526,6 +543,10 @@ macro_rules! with_var {
 }
 
 impl Variation for Var {
+    fn name(&self) -> String {
+        with_var!(self, v, v.name())
+    }
+
     fn weight(&self) -> f64 {
         with_var!(self, v, v.weight())
     }
