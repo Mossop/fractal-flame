@@ -41,19 +41,15 @@ fn do_test(name: &str) {
     let bytes = &buf[..info.buffer_size()];
     assert_eq!(bytes.len(), data.len());
 
-    let mut index = 0;
     let mut diff_sum = 0;
-    for y in 0..info.height {
-        for x in 0..info.width {
-            let diff = if data[index] > bytes[index] {
-                data[index] - bytes[index]
-            } else {
-                bytes[index] - data[index]
-            };
+    for index in 0..bytes.len() {
+        let diff = if data[index] > bytes[index] {
+            data[index] - bytes[index]
+        } else {
+            bytes[index] - data[index]
+        };
 
-            diff_sum += diff;
-            index += 1;
-        }
+        diff_sum += diff;
     }
 
     if diff_sum > 10 {

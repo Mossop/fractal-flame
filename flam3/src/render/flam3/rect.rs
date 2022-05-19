@@ -324,7 +324,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             ppux /= frame.pixel_aspect_ratio;
             let mut shift = match field {
                 Field::Both => 0.0,
-                Field::Even => -0.5,
+                // Field::Even => -0.5,
                 Field::Odd => 0.5,
             };
 

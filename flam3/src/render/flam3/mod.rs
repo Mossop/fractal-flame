@@ -29,7 +29,6 @@ fn adjust_percentage(perc: f64) -> f64 {
 enum Field {
     Both,
     Odd,
-    Even,
 }
 
 trait ClonableRng: RngCore + Clone {}

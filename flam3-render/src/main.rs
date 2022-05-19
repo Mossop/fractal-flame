@@ -21,6 +21,14 @@ struct Args {
     seed: Option<String>,
 }
 
+fn make_single_name(out: &Option<String>) -> String {
+    if let Some(name) = out {
+        name.clone()
+    } else {
+        "out.png".to_string()
+    }
+}
+
 fn make_name(index: usize, base: &Option<String>) -> String {
     if let Some(name) = base {
         let base = name.trim_end_matches(".png");
@@ -42,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         flam3_from_reader(BufReader::new(stdin()))?
     };
+    let count = genomes.len();
 
     for (index, genome) in genomes.into_iter().enumerate() {
         let name = genome
@@ -58,7 +67,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
         )?;
 
-        let name = make_name(index, &args.out);
+        let name = if count == 1 {
+            make_single_name(&args.out)
+        } else {
+            make_name(index, &args.out)
+        };
         println!("Writing {}...", name);
 
         let file = File::create(name)?;
