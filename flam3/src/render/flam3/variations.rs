@@ -630,7 +630,7 @@ impl Flam3Variation for variations::Blob {
         let a = f.atan();
         let bdiff = self.high - self.low;
 
-        r *= (self.low + bdiff * (0.5 + 0.5 * (self.waves * a))).sin();
+        r *= self.low + bdiff * (0.5 + 0.5 * (self.waves * a).sin());
 
         f.p0 += self.weight() * f.sina() * r;
         f.p1 += self.weight() * f.cosa() * r;
