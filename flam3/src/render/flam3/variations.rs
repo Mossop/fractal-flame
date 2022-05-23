@@ -939,13 +939,13 @@ impl Flam3Variation for variations::Rectangles {
         if self.x == 0.0 {
             f.p0 += self.weight() * f.tx;
         } else {
-            f.p0 += self.weight() * ((2.0 * (f.tx / self.x).trunc() + 1.0) * self.x - f.tx);
+            f.p0 += self.weight() * ((2.0 * (f.tx / self.x).floor() + 1.0) * self.x - f.tx);
         }
 
         if self.y == 0.0 {
             f.p1 += self.weight() * f.ty;
         } else {
-            f.p1 += self.weight() * ((2.0 * (f.ty / self.y).trunc() + 1.0) * self.y - f.ty);
+            f.p1 += self.weight() * ((2.0 * (f.ty / self.y).floor() + 1.0) * self.y - f.ty);
         }
     }
 }
