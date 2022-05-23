@@ -1645,8 +1645,8 @@ impl Flam3Variation for variations::Popcorn2 {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        f.p0 += self.weight() * (f.tx + self.x * ((f.ty * self.c).tan())).sin();
-        f.p1 += self.weight() * (f.ty + self.y * ((f.tx * self.c).tan())).sin();
+        f.p0 += self.weight() * (f.tx + self.x * ((f.ty * self.c).tan()).sin());
+        f.p1 += self.weight() * (f.ty + self.y * ((f.tx * self.c).tan()).sin());
     }
 }
 
