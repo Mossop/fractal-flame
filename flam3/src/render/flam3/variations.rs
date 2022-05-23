@@ -978,8 +978,8 @@ impl Flam3Variation for variations::Tangent {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        f.p0 += self.weight() * (f.tx) / (f.ty).cos().sin();
-        f.p1 += self.weight() * (f.ty).tan();
+        f.p0 += self.weight() * f.tx.sin() / f.ty.cos();
+        f.p1 += self.weight() * f.ty.tan();
     }
 }
 
