@@ -58,7 +58,6 @@ fn flam3_iterate(
             bad_iterations += 1;
             if consecutive_failures < 5 {
                 p = q;
-                iteration -= 1;
                 continue;
             } else {
                 consecutive_failures = 0;
@@ -99,8 +98,6 @@ pub(super) fn iter_thread<Ops: RenderOps>(
     let ficp = &mut fthp.fic;
     let cmap_size = ficp.cmap_size.i32();
     let cmap_size_m1 = cmap_size - 1;
-
-    //    double eta = 0.0;
 
     let fuse = if ficp.spec.earlyclip {
         FUSE_28
