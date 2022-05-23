@@ -1861,8 +1861,8 @@ impl Flam3Variation for variations::Waves2 {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        f.p0 += self.weight() * (f.tx + self.x_scale * (f.ty * self.x_frequency)).sin();
-        f.p1 += self.weight() * (f.ty + self.y_scale * (f.tx * self.y_frequency)).sin();
+        f.p0 += self.weight() * (f.tx + self.x_scale * (f.ty * self.x_frequency).sin());
+        f.p1 += self.weight() * (f.ty + self.y_scale * (f.tx * self.y_frequency).sin());
     }
 }
 
