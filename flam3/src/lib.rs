@@ -4,6 +4,7 @@ mod utils;
 pub mod variations;
 
 use std::{
+    cmp::Ordering,
     f64::consts::PI,
     fmt::Display,
     ops::{Index, IndexMut},
@@ -522,14 +523,52 @@ fn round6(mut x: f64) -> f64 {
     1e-6 * (x + 0.5).trunc()
 }
 
+fn det_matrix(c: &[[f64; 2]; 3]) -> f64 {
+    c[0][0] * c[1][1] - c[0][1] * c[1][0]
+}
+
+fn compare_xforms(a: &Transform, b: &Transform) -> Ordering {
+    let mut ad = det_matrix(&a.coefficients.coefficients);
+    let mut bd = det_matrix(&b.coefficients.coefficients);
+
+    if a.color_speed > b.color_speed {
+        return Ordering::Greater;
+    }
+
+    if a.color_speed < b.color_speed {
+        return Ordering::Less;
+    }
+
+    if a.color_speed != 0.0 {
+        if ad < 0.0 {
+            return Ordering::Less;
+        }
+        if bd < 0.0 {
+            return Ordering::Greater;
+        }
+        ad = a.coefficients[0][0].atan2(a.coefficients[0][1]);
+        bd = b.coefficients[0][0].atan2(b.coefficients[0][1]);
+    }
+
+    if ad < bd {
+        Ordering::Less
+    } else if ad > bd {
+        Ordering::Greater
+    } else {
+        Ordering::Equal
+    }
+}
+
 impl Genome {
     pub fn add_transform(&mut self, transform: Transform) {
         self.transforms.push(transform);
     }
 
     pub fn add_symmetry(&mut self, mut kind: i32) {
+        let mut new_transforms = Vec::new();
+
         if kind < 0 {
-            self.transforms.push(Transform {
+            new_transforms.push(Transform {
                 density: 1.0,
                 color_speed: 0.0,
                 animate: 0.0,
@@ -545,10 +584,10 @@ impl Genome {
         let a = 2.0 * PI / kind.f64();
 
         for k in 1..kind {
-            let x = round6(((k.f64()) * a).cos());
-            let y = round6(((k.f64()) * a).sin());
+            let x = round6((k.f64() * a).cos());
+            let y = round6((k.f64() * a).sin());
 
-            self.transforms.push(Transform {
+            new_transforms.push(Transform {
                 density: 1.0,
                 color_speed: 0.0,
                 animate: 0.0,
@@ -556,12 +595,16 @@ impl Genome {
                 color: if kind < 3 {
                     0.0
                 } else {
-                    ((k.f64()) - 1.0) / ((kind.f64()) - 2.0)
+                    (k - 1).f64() / (kind - 2).f64()
                 },
                 coefficients: [[x, y], [round6(-y), x], [0.0, 0.0]].into(),
                 ..Default::default()
             });
         }
+
+        new_transforms.sort_by(compare_xforms);
+
+        self.transforms.extend(new_transforms);
     }
 }
 
