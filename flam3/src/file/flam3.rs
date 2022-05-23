@@ -11,9 +11,9 @@ use xml::{
 };
 
 use crate::{
-    color_from_str, parse,
+    parse,
     variations::{self, Var},
-    Affine, ColorType, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Rgba,
+    Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette, Rgba,
     TemporalFilter, Transform,
 };
 
@@ -414,20 +414,68 @@ fn attr_hash(attributes: Vec<OwnedAttribute>) -> HashMap<String, String> {
     HashMap::from_iter(attributes.into_iter().map(|a| (a.name.local_name, a.value)))
 }
 
-fn strip_whitespace(data: String) -> String {
-    // Strips out newlines and any whitespace at the start or end of the lines.
-    // Allows a single space at the start of each line to allow for <16 hex
-    // values.
-    data.split('\n')
-        .map(|s| {
-            let trimmed = s.trim();
-            if trimmed.len() % 2 != 0 {
-                format!(" {}", trimmed)
+fn skip_whitespace(chars: &[u8], mut pos: usize) -> usize {
+    while pos < chars.len() && chars[pos].is_ascii_whitespace() {
+        pos += 1;
+    }
+    pos
+}
+
+fn read_hex(chars: &[u8], pos: usize) -> Result<(f64, usize), String> {
+    fn as_digit(ch: u8) -> Result<u8, String> {
+        if ch.is_ascii_digit() {
+            Ok(ch - b'0')
+        } else if ch.is_ascii_hexdigit() {
+            if ch.is_ascii_lowercase() {
+                Ok(ch - b'a' + 10)
             } else {
-                trimmed.to_owned()
+                Ok(ch - b'A' + 10)
             }
-        })
-        .collect()
+        } else {
+            Err(format!("Unexpected character '{}' in palette data", ch))
+        }
+    }
+
+    let start = skip_whitespace(chars, pos);
+    if start >= chars.len() {
+        Err("Ran out of characters parsing palette data".to_string())
+    } else if start == chars.len() - 1 || chars[start + 1].is_ascii_whitespace() {
+        let val = as_digit(chars[start])?;
+        Ok((val as f64 / 255.0, start + 1))
+    } else {
+        let val1 = as_digit(chars[start])?;
+        let val2 = as_digit(chars[start + 1])?;
+        Ok(((val1 * 16 + val2) as f64 / 255.0, start + 2))
+    }
+}
+
+fn parse_palette_data(str: &str, bytes: usize, palette: &mut Palette) -> Result<(), String> {
+    let chars: Vec<u8> = str.bytes().collect();
+    let mut pos = skip_whitespace(&chars, 0);
+
+    for entry in palette.iter_mut() {
+        let (r, next) = read_hex(&chars, pos)?;
+        let (g, next) = read_hex(&chars, next)?;
+        let (b, next) = read_hex(&chars, next)?;
+
+        let a = if bytes == 4 {
+            let (a, _) = read_hex(&chars, next)?;
+            a
+        } else {
+            1.0
+        };
+
+        *entry = Rgba {
+            red: r,
+            green: g,
+            blue: b,
+            alpha: a,
+        };
+
+        pos = skip_whitespace(&chars, pos + bytes * 2);
+    }
+
+    Ok(())
 }
 
 fn parse_palette<R: Read>(
@@ -440,7 +488,7 @@ fn parse_palette<R: Read>(
         .ok_or_else(|| "Missing number of colors in palette".to_string())
         .and_then(|s| parse::<usize>(&s))?;
 
-    if colors != 256 {
+    if colors != genome.palette.len() {
         return Err(format!(
             "Unexpected number of colors in palette: {}",
             colors
@@ -459,30 +507,7 @@ fn parse_palette<R: Read>(
                 return Ok(());
             }
             reader::XmlEvent::Characters(palette) => {
-                let palette = strip_whitespace(palette);
-
-                if palette.len() != colors * bytes * 2 {
-                    return Err(format!(
-                        "Unexpected length of palette data for {} colors with {} bytes per color: {}",
-                        colors,
-                        bytes,
-                        palette.len()
-                    ));
-                }
-
-                for index in 0..colors {
-                    let pos = index * bytes * 2;
-                    genome.palette[index] = Rgba {
-                        red: color_from_str(&palette[pos..pos + 2], ColorType::Hex)?,
-                        green: color_from_str(&palette[pos + 2..pos + 4], ColorType::Hex)?,
-                        blue: color_from_str(&palette[pos + 4..pos + 6], ColorType::Hex)?,
-                        alpha: if bytes == 4 {
-                            color_from_str(&palette[pos + 4..pos + 6], ColorType::Hex)?
-                        } else {
-                            1.0
-                        },
-                    }
-                }
+                parse_palette_data(&palette, bytes, &mut genome.palette)?;
             }
             _ => {}
         }
@@ -494,9 +519,9 @@ fn serialize_colors<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
         let mut attrs: Vec<(String, String)> = vec![("index".to_string(), index.to_string())];
 
         if color.has_opacity() {
-            attrs.push(("rgba".to_string(), color.to_str_list(ColorType::Byte)));
+            attrs.push(("rgba".to_string(), color.to_str_list()));
         } else {
-            attrs.push(("rgb".to_string(), color.to_str_list(ColorType::Byte)));
+            attrs.push(("rgb".to_string(), color.to_str_list()));
         }
 
         write_start_element(writer, "color", attrs)?;
@@ -524,7 +549,7 @@ fn parse_color<R: Read>(
         .get("rgba")
         .or_else(|| attrs.get("rgb"))
         .ok_or_else(|| "Missing color value".to_string())
-        .and_then(|s| Rgba::from_str_list(s, crate::ColorType::Byte))?;
+        .and_then(|s| Rgba::from_str_list(s))?;
 
     genome.palette[index] = color;
 
@@ -673,7 +698,7 @@ fn serialize_genome<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     writep!(attrs, genome.passes, "passes");
     writep!(attrs, genome.num_temporal_samples, "temporal_samples");
     writep!(attrs, &genome.background, "background", |c: &Rgba| c
-        .to_str_list(crate::ColorType::Byte));
+        .to_str_list());
     writep!(attrs, genome.brightness, "brightness");
     writep!(attrs, genome.gamma, "gamma");
     writep!(attrs, genome.highlight_power, "highlight_power");
@@ -746,7 +771,7 @@ fn parse_genome<R: Read>(
     setp!(attrs, genome.passes, "passes");
     setp!(attrs, genome.num_temporal_samples, "temporal_samples");
     setp!(attrs, genome.background, "background", |s| {
-        Rgba::from_str_list(s, crate::ColorType::Byte)
+        Rgba::from_str_list(s)
     });
     setp!(attrs, genome.brightness, "brightness");
     setp!(attrs, genome.gamma, "gamma");
@@ -861,4 +886,604 @@ pub fn flam3_to_writer<W: Write>(genomes: &[Genome], sink: W) -> Result<(), Stri
     write_xml_event!(writer, writer::XmlEvent::end_element());
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Rgba;
+
+    use super::parse_palette_data;
+
+    #[test]
+    fn palette() {
+        let palette_data = "
+      baa0b6be85a6bd799ebc6e97c26897c96398ca6699cc699b
+      ca85a9d094b4d6a4c0d2aec2cfb9c4c8c1c4c1cac4c3cdc7
+      c6d1cbc6cecbbfc6c3b9bebcbbbdbebdbdc0c1bbc2c5bac5
+      d3c5d1d9cdd8e0d6e0e0d4dfe0d2dedcd0dad9cfd7cecbcf
+      c2c6c6a5a8a8969c9a87908c808b867a87807a867f7a867f
+      8189897f8f8f7d969678939874909b708b996c8697607690
+      54668346476d443963432c5a4522504819464b1b464e1d47
+      6037566643616c506c695e75666c7f6470816374835e7483
+      556f804f5c73564e695d40605d395b5e32575a2850582850
+      5d385e5e3c60604062584a6050545f4b5b634662683e6971
+      3a6c75386b6e3b656f3e60703f5a714055733f49753b4171
+      32325c2f28522d1e492c1a462c17432c12442a f422c1243
+      311a4c4b31665b38776c3f89724590784b97835b9e896ca3
+      9882af9b86b09e8bb29c8ab09b89af9a80a89a7aa29a739b
+      9c6a93934c899046878d40868b37858b36838b3d81873e7f
+      80437f81498283508583548584588583628380657e7f657a
+      7c5d736e466568405e623a5856334e4729403d1d3736132f
+      38 62438 c253913273a192b3c20303f2a364d37445d3e51
+      674c60756b7678737b7b7b818284888a8a8f909196949499
+      999b9f9a9c9f9b9da09a9da2989ca1939aa08c98a18695a0
+      81939f818d99818a97828896867e958774938a65898e557e
+      96416e97416f9942719b4172963c6c8d31627a2e596c3353
+      603f5253494e4a464439413b2d3e322840312c4b38395540
+      596f5e6578697182758a9890a2aaa7b4b8b8bdbfc0c2c4c8
+      c0c6ccb9c5ccacbec999b1bf88a3b67698ae6890a85e8ca5
+      548aa35187a25188a45189a55187a54e839f4b74974b648f
+      4c57884b4c85474d80444b7e4448804e4c835e528c6d6594
+      7a7a9d888eae99a7bdafbacdc3cadaced8ddd1d9dccbd7d4
+      c0cdc8b2b9b89da7a7848e916b767754626343464f393249
+      35254b39204d4327544c3158513a635647715851805b5c8b
+      5863915168914d6f914a71904d778e5276915a7b9465849c
+      778ea38ba0ac9dacb5a9b3b9adb5baadb2b6aeafb6b3aab8
+";
+        let mut palette = vec![Rgba::default(); 256];
+        parse_palette_data(palette_data, 3, &mut palette).unwrap();
+        let mut i = palette.into_iter().map(|c| c.to_str_list());
+
+        assert_eq!(i.next().unwrap(), "186 160 182");
+        assert_eq!(i.next().unwrap(), "190 133 166");
+        assert_eq!(i.next().unwrap(), "189 121 158");
+        assert_eq!(i.next().unwrap(), "188 110 151");
+        assert_eq!(i.next().unwrap(), "194 104 151");
+        assert_eq!(i.next().unwrap(), "201 99 152");
+        assert_eq!(i.next().unwrap(), "202 102 153");
+        assert_eq!(i.next().unwrap(), "204 105 155");
+        assert_eq!(i.next().unwrap(), "202 133 169");
+        assert_eq!(i.next().unwrap(), "208 148 180");
+        assert_eq!(i.next().unwrap(), "214 164 192");
+        assert_eq!(i.next().unwrap(), "210 174 194");
+        assert_eq!(i.next().unwrap(), "207 185 196");
+        assert_eq!(i.next().unwrap(), "200 193 196");
+        assert_eq!(i.next().unwrap(), "193 202 196");
+        assert_eq!(i.next().unwrap(), "195 205 199");
+        assert_eq!(i.next().unwrap(), "198 209 203");
+        assert_eq!(i.next().unwrap(), "198 206 203");
+        assert_eq!(i.next().unwrap(), "191 198 195");
+        assert_eq!(i.next().unwrap(), "185 190 188");
+        assert_eq!(i.next().unwrap(), "187 189 190");
+        assert_eq!(i.next().unwrap(), "189 189 192");
+        assert_eq!(i.next().unwrap(), "193 187 194");
+        assert_eq!(i.next().unwrap(), "197 186 197");
+        assert_eq!(i.next().unwrap(), "211 197 209");
+        assert_eq!(i.next().unwrap(), "217 205 216");
+        assert_eq!(i.next().unwrap(), "224 214 224");
+        assert_eq!(i.next().unwrap(), "224 212 223");
+        assert_eq!(i.next().unwrap(), "224 210 222");
+        assert_eq!(i.next().unwrap(), "220 208 218");
+        assert_eq!(i.next().unwrap(), "217 207 215");
+        assert_eq!(i.next().unwrap(), "206 203 207");
+        assert_eq!(i.next().unwrap(), "194 198 198");
+        assert_eq!(i.next().unwrap(), "165 168 168");
+        assert_eq!(i.next().unwrap(), "150 156 154");
+        assert_eq!(i.next().unwrap(), "135 144 140");
+        assert_eq!(i.next().unwrap(), "128 139 134");
+        assert_eq!(i.next().unwrap(), "122 135 128");
+        assert_eq!(i.next().unwrap(), "122 134 127");
+        assert_eq!(i.next().unwrap(), "122 134 127");
+        assert_eq!(i.next().unwrap(), "129 137 137");
+        assert_eq!(i.next().unwrap(), "127 143 143");
+        assert_eq!(i.next().unwrap(), "125 150 150");
+        assert_eq!(i.next().unwrap(), "120 147 152");
+        assert_eq!(i.next().unwrap(), "116 144 155");
+        assert_eq!(i.next().unwrap(), "112 139 153");
+        assert_eq!(i.next().unwrap(), "108 134 151");
+        assert_eq!(i.next().unwrap(), "96 118 144");
+        assert_eq!(i.next().unwrap(), "84 102 131");
+        assert_eq!(i.next().unwrap(), "70 71 109");
+        assert_eq!(i.next().unwrap(), "68 57 99");
+        assert_eq!(i.next().unwrap(), "67 44 90");
+        assert_eq!(i.next().unwrap(), "69 34 80");
+        assert_eq!(i.next().unwrap(), "72 25 70");
+        assert_eq!(i.next().unwrap(), "75 27 70");
+        assert_eq!(i.next().unwrap(), "78 29 71");
+        assert_eq!(i.next().unwrap(), "96 55 86");
+        assert_eq!(i.next().unwrap(), "102 67 97");
+        assert_eq!(i.next().unwrap(), "108 80 108");
+        assert_eq!(i.next().unwrap(), "105 94 117");
+        assert_eq!(i.next().unwrap(), "102 108 127");
+        assert_eq!(i.next().unwrap(), "100 112 129");
+        assert_eq!(i.next().unwrap(), "99 116 131");
+        assert_eq!(i.next().unwrap(), "94 116 131");
+        assert_eq!(i.next().unwrap(), "85 111 128");
+        assert_eq!(i.next().unwrap(), "79 92 115");
+        assert_eq!(i.next().unwrap(), "86 78 105");
+        assert_eq!(i.next().unwrap(), "93 64 96");
+        assert_eq!(i.next().unwrap(), "93 57 91");
+        assert_eq!(i.next().unwrap(), "94 50 87");
+        assert_eq!(i.next().unwrap(), "90 40 80");
+        assert_eq!(i.next().unwrap(), "88 40 80");
+        assert_eq!(i.next().unwrap(), "93 56 94");
+        assert_eq!(i.next().unwrap(), "94 60 96");
+        assert_eq!(i.next().unwrap(), "96 64 98");
+        assert_eq!(i.next().unwrap(), "88 74 96");
+        assert_eq!(i.next().unwrap(), "80 84 95");
+        assert_eq!(i.next().unwrap(), "75 91 99");
+        assert_eq!(i.next().unwrap(), "70 98 104");
+        assert_eq!(i.next().unwrap(), "62 105 113");
+        assert_eq!(i.next().unwrap(), "58 108 117");
+        assert_eq!(i.next().unwrap(), "56 107 110");
+        assert_eq!(i.next().unwrap(), "59 101 111");
+        assert_eq!(i.next().unwrap(), "62 96 112");
+        assert_eq!(i.next().unwrap(), "63 90 113");
+        assert_eq!(i.next().unwrap(), "64 85 115");
+        assert_eq!(i.next().unwrap(), "63 73 117");
+        assert_eq!(i.next().unwrap(), "59 65 113");
+        assert_eq!(i.next().unwrap(), "50 50 92");
+        assert_eq!(i.next().unwrap(), "47 40 82");
+        assert_eq!(i.next().unwrap(), "45 30 73");
+        assert_eq!(i.next().unwrap(), "44 26 70");
+        assert_eq!(i.next().unwrap(), "44 23 67");
+        assert_eq!(i.next().unwrap(), "44 18 68");
+        assert_eq!(i.next().unwrap(), "42 244 34");
+        assert_eq!(i.next().unwrap(), "44 18 67");
+        assert_eq!(i.next().unwrap(), "49 26 76");
+        assert_eq!(i.next().unwrap(), "75 49 102");
+        assert_eq!(i.next().unwrap(), "91 56 119");
+        assert_eq!(i.next().unwrap(), "108 63 137");
+        assert_eq!(i.next().unwrap(), "114 69 144");
+        assert_eq!(i.next().unwrap(), "120 75 151");
+        assert_eq!(i.next().unwrap(), "131 91 158");
+        assert_eq!(i.next().unwrap(), "137 108 163");
+        assert_eq!(i.next().unwrap(), "152 130 175");
+        assert_eq!(i.next().unwrap(), "155 134 176");
+        assert_eq!(i.next().unwrap(), "158 139 178");
+        assert_eq!(i.next().unwrap(), "156 138 176");
+        assert_eq!(i.next().unwrap(), "155 137 175");
+        assert_eq!(i.next().unwrap(), "154 128 168");
+        assert_eq!(i.next().unwrap(), "154 122 162");
+        assert_eq!(i.next().unwrap(), "154 115 155");
+        assert_eq!(i.next().unwrap(), "156 106 147");
+        assert_eq!(i.next().unwrap(), "147 76 137");
+        assert_eq!(i.next().unwrap(), "144 70 135");
+        assert_eq!(i.next().unwrap(), "141 64 134");
+        assert_eq!(i.next().unwrap(), "139 55 133");
+        assert_eq!(i.next().unwrap(), "139 54 131");
+        assert_eq!(i.next().unwrap(), "139 61 129");
+        assert_eq!(i.next().unwrap(), "135 62 127");
+        assert_eq!(i.next().unwrap(), "128 67 127");
+        assert_eq!(i.next().unwrap(), "129 73 130");
+        assert_eq!(i.next().unwrap(), "131 80 133");
+        assert_eq!(i.next().unwrap(), "131 84 133");
+        assert_eq!(i.next().unwrap(), "132 88 133");
+        assert_eq!(i.next().unwrap(), "131 98 131");
+        assert_eq!(i.next().unwrap(), "128 101 126");
+        assert_eq!(i.next().unwrap(), "127 101 122");
+        assert_eq!(i.next().unwrap(), "124 93 115");
+        assert_eq!(i.next().unwrap(), "110 70 101");
+        assert_eq!(i.next().unwrap(), "104 64 94");
+        assert_eq!(i.next().unwrap(), "98 58 88");
+        assert_eq!(i.next().unwrap(), "86 51 78");
+        assert_eq!(i.next().unwrap(), "71 41 64");
+        assert_eq!(i.next().unwrap(), "61 29 55");
+        assert_eq!(i.next().unwrap(), "54 19 47");
+        assert_eq!(i.next().unwrap(), "56 98 67");
+        assert_eq!(i.next().unwrap(), "56 194 83");
+        assert_eq!(i.next().unwrap(), "57 19 39");
+        assert_eq!(i.next().unwrap(), "58 25 43");
+        assert_eq!(i.next().unwrap(), "60 32 48");
+        assert_eq!(i.next().unwrap(), "63 42 54");
+        assert_eq!(i.next().unwrap(), "77 55 68");
+        assert_eq!(i.next().unwrap(), "93 62 81");
+        assert_eq!(i.next().unwrap(), "103 76 96");
+        assert_eq!(i.next().unwrap(), "117 107 118");
+        assert_eq!(i.next().unwrap(), "120 115 123");
+        assert_eq!(i.next().unwrap(), "123 123 129");
+        assert_eq!(i.next().unwrap(), "130 132 136");
+        assert_eq!(i.next().unwrap(), "138 138 143");
+        assert_eq!(i.next().unwrap(), "144 145 150");
+        assert_eq!(i.next().unwrap(), "148 148 153");
+        assert_eq!(i.next().unwrap(), "153 155 159");
+        assert_eq!(i.next().unwrap(), "154 156 159");
+        assert_eq!(i.next().unwrap(), "155 157 160");
+        assert_eq!(i.next().unwrap(), "154 157 162");
+        assert_eq!(i.next().unwrap(), "152 156 161");
+        assert_eq!(i.next().unwrap(), "147 154 160");
+        assert_eq!(i.next().unwrap(), "140 152 161");
+        assert_eq!(i.next().unwrap(), "134 149 160");
+        assert_eq!(i.next().unwrap(), "129 147 159");
+        assert_eq!(i.next().unwrap(), "129 141 153");
+        assert_eq!(i.next().unwrap(), "129 138 151");
+        assert_eq!(i.next().unwrap(), "130 136 150");
+        assert_eq!(i.next().unwrap(), "134 126 149");
+        assert_eq!(i.next().unwrap(), "135 116 147");
+        assert_eq!(i.next().unwrap(), "138 101 137");
+        assert_eq!(i.next().unwrap(), "142 85 126");
+        assert_eq!(i.next().unwrap(), "150 65 110");
+        assert_eq!(i.next().unwrap(), "151 65 111");
+        assert_eq!(i.next().unwrap(), "153 66 113");
+        assert_eq!(i.next().unwrap(), "155 65 114");
+        assert_eq!(i.next().unwrap(), "150 60 108");
+        assert_eq!(i.next().unwrap(), "141 49 98");
+        assert_eq!(i.next().unwrap(), "122 46 89");
+        assert_eq!(i.next().unwrap(), "108 51 83");
+        assert_eq!(i.next().unwrap(), "96 63 82");
+        assert_eq!(i.next().unwrap(), "83 73 78");
+        assert_eq!(i.next().unwrap(), "74 70 68");
+        assert_eq!(i.next().unwrap(), "57 65 59");
+        assert_eq!(i.next().unwrap(), "45 62 50");
+        assert_eq!(i.next().unwrap(), "40 64 49");
+        assert_eq!(i.next().unwrap(), "44 75 56");
+        assert_eq!(i.next().unwrap(), "57 85 64");
+        assert_eq!(i.next().unwrap(), "89 111 94");
+        assert_eq!(i.next().unwrap(), "101 120 105");
+        assert_eq!(i.next().unwrap(), "113 130 117");
+        assert_eq!(i.next().unwrap(), "138 152 144");
+        assert_eq!(i.next().unwrap(), "162 170 167");
+        assert_eq!(i.next().unwrap(), "180 184 184");
+        assert_eq!(i.next().unwrap(), "189 191 192");
+        assert_eq!(i.next().unwrap(), "194 196 200");
+        assert_eq!(i.next().unwrap(), "192 198 204");
+        assert_eq!(i.next().unwrap(), "185 197 204");
+        assert_eq!(i.next().unwrap(), "172 190 201");
+        assert_eq!(i.next().unwrap(), "153 177 191");
+        assert_eq!(i.next().unwrap(), "136 163 182");
+        assert_eq!(i.next().unwrap(), "118 152 174");
+        assert_eq!(i.next().unwrap(), "104 144 168");
+        assert_eq!(i.next().unwrap(), "94 140 165");
+        assert_eq!(i.next().unwrap(), "84 138 163");
+        assert_eq!(i.next().unwrap(), "81 135 162");
+        assert_eq!(i.next().unwrap(), "81 136 164");
+        assert_eq!(i.next().unwrap(), "81 137 165");
+        assert_eq!(i.next().unwrap(), "81 135 165");
+        assert_eq!(i.next().unwrap(), "78 131 159");
+        assert_eq!(i.next().unwrap(), "75 116 151");
+        assert_eq!(i.next().unwrap(), "75 100 143");
+        assert_eq!(i.next().unwrap(), "76 87 136");
+        assert_eq!(i.next().unwrap(), "75 76 133");
+        assert_eq!(i.next().unwrap(), "71 77 128");
+        assert_eq!(i.next().unwrap(), "68 75 126");
+        assert_eq!(i.next().unwrap(), "68 72 128");
+        assert_eq!(i.next().unwrap(), "78 76 131");
+        assert_eq!(i.next().unwrap(), "94 82 140");
+        assert_eq!(i.next().unwrap(), "109 101 148");
+        assert_eq!(i.next().unwrap(), "122 122 157");
+        assert_eq!(i.next().unwrap(), "136 142 174");
+        assert_eq!(i.next().unwrap(), "153 167 189");
+        assert_eq!(i.next().unwrap(), "175 186 205");
+        assert_eq!(i.next().unwrap(), "195 202 218");
+        assert_eq!(i.next().unwrap(), "206 216 221");
+        assert_eq!(i.next().unwrap(), "209 217 220");
+        assert_eq!(i.next().unwrap(), "203 215 212");
+        assert_eq!(i.next().unwrap(), "192 205 200");
+        assert_eq!(i.next().unwrap(), "178 185 184");
+        assert_eq!(i.next().unwrap(), "157 167 167");
+        assert_eq!(i.next().unwrap(), "132 142 145");
+        assert_eq!(i.next().unwrap(), "107 118 119");
+        assert_eq!(i.next().unwrap(), "84 98 99");
+        assert_eq!(i.next().unwrap(), "67 70 79");
+        assert_eq!(i.next().unwrap(), "57 50 73");
+        assert_eq!(i.next().unwrap(), "53 37 75");
+        assert_eq!(i.next().unwrap(), "57 32 77");
+        assert_eq!(i.next().unwrap(), "67 39 84");
+        assert_eq!(i.next().unwrap(), "76 49 88");
+        assert_eq!(i.next().unwrap(), "81 58 99");
+        assert_eq!(i.next().unwrap(), "86 71 113");
+        assert_eq!(i.next().unwrap(), "88 81 128");
+        assert_eq!(i.next().unwrap(), "91 92 139");
+        assert_eq!(i.next().unwrap(), "88 99 145");
+        assert_eq!(i.next().unwrap(), "81 104 145");
+        assert_eq!(i.next().unwrap(), "77 111 145");
+        assert_eq!(i.next().unwrap(), "74 113 144");
+        assert_eq!(i.next().unwrap(), "77 119 142");
+        assert_eq!(i.next().unwrap(), "82 118 145");
+        assert_eq!(i.next().unwrap(), "90 123 148");
+        assert_eq!(i.next().unwrap(), "101 132 156");
+        assert_eq!(i.next().unwrap(), "119 142 163");
+        assert_eq!(i.next().unwrap(), "139 160 172");
+        assert_eq!(i.next().unwrap(), "157 172 181");
+        assert_eq!(i.next().unwrap(), "169 179 185");
+        assert_eq!(i.next().unwrap(), "173 181 186");
+        assert_eq!(i.next().unwrap(), "173 178 182");
+        assert_eq!(i.next().unwrap(), "174 175 182");
+        assert_eq!(i.next().unwrap(), "179 170 184");
+
+        let palette_data = "
+      dac1add9bba3d4b194d0a8857cc14929da e28e3 827ed 2
+      37c53183a849cf8c6287c53240ff 23aff 234ff 333ff 1
+      32ff 030f3 17bb826c77d4cc56733c4511add49 df741 0
+      ff4f 1ff57 1ff5f 1ff7015ff812ae4803dca8051cb8154
+      c980533dff 01fea18 1d5312690644c4b974f33c2521cee
+      6216ff5a18fa531af5573ed95b62bd9784a3d3a689d6bba0
+      dabfaadbd0bedacab6d9c4afd8bda5d8b69bd7b195d6ad8f
+      d09269cd895dca8051c66734c34e18c14811c043 bf126 0
+      f6 d 0db 05fbe 077a2 18f82 18962 1849f 18cae127f
+      d39066d39974d4a383d6b197d9c0acdac5b4dbcbbcdcdbd6
+      e8fff2dde7dfdad4c5d7c1acd4b194d1a17dcb8154c86c39
+      f441 0f320 0f2 0 1f1 0 0f1 1 0a5 1 0a2 0 09e 01b
+      75 14c721bfd75 dfe79 0ff7b 0fe7e 0feae 0b9c1 084
+      cb8154cf8d64d39974d6a484d9b094d8bca4dac0a9ffda91
+      ffb974d4ad8cd4aa89d5a887d2a1815a6fb25d4ecb5f44d3
+       192ed 0a7c9 0bca6 0ba8b 1b971 0c158 0ca3a 0c841
+      4ca762d7b599d8baa1d9c0aadac4afdec7b5ffe29cfed88f
+      d09269d19b75d2a482d4ac8dd7b599d8c2abe9ebc3eaffe0
+      f6fdd3fff1acffeeabffecaafee7a3d7b697efcea3e18657
+      5e40d6642de96b1afd7515ff6317ff531af2742f70c87243
+      c96d3a8d82305eaa262fd31c22e7 1 1ff 1 0ff 7 0e226
+      27adac80bfb7dad1c2dfe7cfe9ffeaedf3cfdbcbbbd4b193
+      509f70 1acc8 09fdb1f70ff2740ff222efc2125fa29 6dc
+      5b 1947d 09aa0 0a0af 088a7 086a4385ac87644ce875b
+      ce875bd18c62ff9742ff8a32fe70 eff6c cfe6e eca6c38
+      c96d3ac76936c76935c5602ac5521bff4e 2fe4f 0ff58 0
+      ff62 3fe7f22ffa457d5a785d4af929da8ba5c53ca561af4
+      6d1afe76 1ff5611ff25 0db27 0d527 0cd39 1bc43 0af
+      6c 26795 038ac1f 1ba2c 0c44b16c3541cc65f25c55e24
+      c24f18c34e18c04710bf40 9bc36 1b323 0b421 0ec 0 2
+      e6 024e1 03fe2 04cc8 07aa7 09d89 0ee84 0f7a1 09c
+      b7 08ccb 078db 05ecb7041d0895fd2a07dd6b194d9bea9
+";
+        let mut palette = vec![Rgba::default(); 256];
+        parse_palette_data(palette_data, 3, &mut palette).unwrap();
+        let mut i = palette.into_iter().map(|c| c.to_str_list());
+
+        assert_eq!(i.next().unwrap(), "218 193 173");
+        assert_eq!(i.next().unwrap(), "217 187 163");
+        assert_eq!(i.next().unwrap(), "212 177 148");
+        assert_eq!(i.next().unwrap(), "208 168 133");
+        assert_eq!(i.next().unwrap(), "124 193 73");
+        assert_eq!(i.next().unwrap(), "41 218 226");
+        assert_eq!(i.next().unwrap(), "40 227 130");
+        assert_eq!(i.next().unwrap(), "39 237 2");
+        assert_eq!(i.next().unwrap(), "55 197 49");
+        assert_eq!(i.next().unwrap(), "131 168 73");
+        assert_eq!(i.next().unwrap(), "207 140 98");
+        assert_eq!(i.next().unwrap(), "135 197 50");
+        assert_eq!(i.next().unwrap(), "64 255 35");
+        assert_eq!(i.next().unwrap(), "58 255 35");
+        assert_eq!(i.next().unwrap(), "52 255 51");
+        assert_eq!(i.next().unwrap(), "51 255 1");
+        assert_eq!(i.next().unwrap(), "50 255 3");
+        assert_eq!(i.next().unwrap(), "48 243 23");
+        assert_eq!(i.next().unwrap(), "123 184 38");
+        assert_eq!(i.next().unwrap(), "199 125 76");
+        assert_eq!(i.next().unwrap(), "197 103 51");
+        assert_eq!(i.next().unwrap(), "196 81 26");
+        assert_eq!(i.next().unwrap(), "221 73 223");
+        assert_eq!(i.next().unwrap(), "247 65 0");
+        assert_eq!(i.next().unwrap(), "255 79 31");
+        assert_eq!(i.next().unwrap(), "255 87 31");
+        assert_eq!(i.next().unwrap(), "255 95 31");
+        assert_eq!(i.next().unwrap(), "255 112 21");
+        assert_eq!(i.next().unwrap(), "255 129 42");
+        assert_eq!(i.next().unwrap(), "228 128 61");
+        assert_eq!(i.next().unwrap(), "202 128 81");
+        assert_eq!(i.next().unwrap(), "203 129 84");
+        assert_eq!(i.next().unwrap(), "201 128 83");
+        assert_eq!(i.next().unwrap(), "61 255 1");
+        assert_eq!(i.next().unwrap(), "31 234 24");
+        assert_eq!(i.next().unwrap(), "29 83 18");
+        assert_eq!(i.next().unwrap(), "105 6 68");
+        assert_eq!(i.next().unwrap(), "196 185 116");
+        assert_eq!(i.next().unwrap(), "243 60 37");
+        assert_eq!(i.next().unwrap(), "33 206 14");
+        assert_eq!(i.next().unwrap(), "98 22 255");
+        assert_eq!(i.next().unwrap(), "90 24 250");
+        assert_eq!(i.next().unwrap(), "83 26 245");
+        assert_eq!(i.next().unwrap(), "87 62 217");
+        assert_eq!(i.next().unwrap(), "91 98 189");
+        assert_eq!(i.next().unwrap(), "151 132 163");
+        assert_eq!(i.next().unwrap(), "211 166 137");
+        assert_eq!(i.next().unwrap(), "214 187 160");
+        assert_eq!(i.next().unwrap(), "218 191 170");
+        assert_eq!(i.next().unwrap(), "219 208 190");
+        assert_eq!(i.next().unwrap(), "218 202 182");
+        assert_eq!(i.next().unwrap(), "217 196 175");
+        assert_eq!(i.next().unwrap(), "216 189 165");
+        assert_eq!(i.next().unwrap(), "216 182 155");
+        assert_eq!(i.next().unwrap(), "215 177 149");
+        assert_eq!(i.next().unwrap(), "214 173 143");
+        assert_eq!(i.next().unwrap(), "208 146 105");
+        assert_eq!(i.next().unwrap(), "205 137 93");
+        assert_eq!(i.next().unwrap(), "202 128 81");
+        assert_eq!(i.next().unwrap(), "198 103 52");
+        assert_eq!(i.next().unwrap(), "195 78 24");
+        assert_eq!(i.next().unwrap(), "193 72 17");
+        assert_eq!(i.next().unwrap(), "192 67 191");
+        assert_eq!(i.next().unwrap(), "241 38 0");
+        assert_eq!(i.next().unwrap(), "246 13 13");
+        assert_eq!(i.next().unwrap(), "219 5 251");
+        assert_eq!(i.next().unwrap(), "190 7 122");
+        assert_eq!(i.next().unwrap(), "162 24 248");
+        assert_eq!(i.next().unwrap(), "130 24 150");
+        assert_eq!(i.next().unwrap(), "98 24 73");
+        assert_eq!(i.next().unwrap(), "159 24 202");
+        assert_eq!(i.next().unwrap(), "174 18 127");
+        assert_eq!(i.next().unwrap(), "211 144 102");
+        assert_eq!(i.next().unwrap(), "211 153 116");
+        assert_eq!(i.next().unwrap(), "212 163 131");
+        assert_eq!(i.next().unwrap(), "214 177 151");
+        assert_eq!(i.next().unwrap(), "217 192 172");
+        assert_eq!(i.next().unwrap(), "218 197 180");
+        assert_eq!(i.next().unwrap(), "219 203 188");
+        assert_eq!(i.next().unwrap(), "220 219 214");
+        assert_eq!(i.next().unwrap(), "232 255 242");
+        assert_eq!(i.next().unwrap(), "221 231 223");
+        assert_eq!(i.next().unwrap(), "218 212 197");
+        assert_eq!(i.next().unwrap(), "215 193 172");
+        assert_eq!(i.next().unwrap(), "212 177 148");
+        assert_eq!(i.next().unwrap(), "209 161 125");
+        assert_eq!(i.next().unwrap(), "203 129 84");
+        assert_eq!(i.next().unwrap(), "200 108 57");
+        assert_eq!(i.next().unwrap(), "244 65 15");
+        assert_eq!(i.next().unwrap(), "243 32 15");
+        assert_eq!(i.next().unwrap(), "242 0 31");
+        assert_eq!(i.next().unwrap(), "241 0 15");
+        assert_eq!(i.next().unwrap(), "241 1 10");
+        assert_eq!(i.next().unwrap(), "165 1 10");
+        assert_eq!(i.next().unwrap(), "162 0 9");
+        assert_eq!(i.next().unwrap(), "158 1 11");
+        assert_eq!(i.next().unwrap(), "117 20 199");
+        assert_eq!(i.next().unwrap(), "114 27 253");
+        assert_eq!(i.next().unwrap(), "117 223 231");
+        assert_eq!(i.next().unwrap(), "121 15 247");
+        assert_eq!(i.next().unwrap(), "123 15 231");
+        assert_eq!(i.next().unwrap(), "126 15 234");
+        assert_eq!(i.next().unwrap(), "174 11 156");
+        assert_eq!(i.next().unwrap(), "193 8 4");
+        assert_eq!(i.next().unwrap(), "203 129 84");
+        assert_eq!(i.next().unwrap(), "207 141 100");
+        assert_eq!(i.next().unwrap(), "211 153 116");
+        assert_eq!(i.next().unwrap(), "214 164 132");
+        assert_eq!(i.next().unwrap(), "217 176 148");
+        assert_eq!(i.next().unwrap(), "216 188 164");
+        assert_eq!(i.next().unwrap(), "218 192 169");
+        assert_eq!(i.next().unwrap(), "255 218 145");
+        assert_eq!(i.next().unwrap(), "255 185 116");
+        assert_eq!(i.next().unwrap(), "212 173 140");
+        assert_eq!(i.next().unwrap(), "212 170 137");
+        assert_eq!(i.next().unwrap(), "213 168 135");
+        assert_eq!(i.next().unwrap(), "210 161 129");
+        assert_eq!(i.next().unwrap(), "90 111 178");
+        assert_eq!(i.next().unwrap(), "93 78 203");
+        assert_eq!(i.next().unwrap(), "95 68 211");
+        assert_eq!(i.next().unwrap(), "25 46 13");
+        assert_eq!(i.next().unwrap(), "10 124 9");
+        assert_eq!(i.next().unwrap(), "11 202 6");
+        assert_eq!(i.next().unwrap(), "11 168 11");
+        assert_eq!(i.next().unwrap(), "27 151 1");
+        assert_eq!(i.next().unwrap(), "12 21 8");
+        assert_eq!(i.next().unwrap(), "12 163 10");
+        assert_eq!(i.next().unwrap(), "12 132 1");
+        assert_eq!(i.next().unwrap(), "76 167 98");
+        assert_eq!(i.next().unwrap(), "215 181 153");
+        assert_eq!(i.next().unwrap(), "216 186 161");
+        assert_eq!(i.next().unwrap(), "217 192 170");
+        assert_eq!(i.next().unwrap(), "218 196 175");
+        assert_eq!(i.next().unwrap(), "222 199 181");
+        assert_eq!(i.next().unwrap(), "255 226 156");
+        assert_eq!(i.next().unwrap(), "254 216 143");
+        assert_eq!(i.next().unwrap(), "208 146 105");
+        assert_eq!(i.next().unwrap(), "209 155 117");
+        assert_eq!(i.next().unwrap(), "210 164 130");
+        assert_eq!(i.next().unwrap(), "212 172 141");
+        assert_eq!(i.next().unwrap(), "215 181 153");
+        assert_eq!(i.next().unwrap(), "216 194 171");
+        assert_eq!(i.next().unwrap(), "233 235 195");
+        assert_eq!(i.next().unwrap(), "234 255 224");
+        assert_eq!(i.next().unwrap(), "246 253 211");
+        assert_eq!(i.next().unwrap(), "255 241 172");
+        assert_eq!(i.next().unwrap(), "255 238 171");
+        assert_eq!(i.next().unwrap(), "255 236 170");
+        assert_eq!(i.next().unwrap(), "254 231 163");
+        assert_eq!(i.next().unwrap(), "215 182 151");
+        assert_eq!(i.next().unwrap(), "239 206 163");
+        assert_eq!(i.next().unwrap(), "225 134 87");
+        assert_eq!(i.next().unwrap(), "94 64 214");
+        assert_eq!(i.next().unwrap(), "100 45 233");
+        assert_eq!(i.next().unwrap(), "107 26 253");
+        assert_eq!(i.next().unwrap(), "117 21 255");
+        assert_eq!(i.next().unwrap(), "99 23 255");
+        assert_eq!(i.next().unwrap(), "83 26 242");
+        assert_eq!(i.next().unwrap(), "116 47 112");
+        assert_eq!(i.next().unwrap(), "200 114 67");
+        assert_eq!(i.next().unwrap(), "201 109 58");
+        assert_eq!(i.next().unwrap(), "141 130 48");
+        assert_eq!(i.next().unwrap(), "94 170 38");
+        assert_eq!(i.next().unwrap(), "47 211 28");
+        assert_eq!(i.next().unwrap(), "34 231 1");
+        assert_eq!(i.next().unwrap(), "31 15 1");
+        assert_eq!(i.next().unwrap(), "15 15 7");
+        assert_eq!(i.next().unwrap(), "14 34 6");
+        assert_eq!(i.next().unwrap(), "39 173 172");
+        assert_eq!(i.next().unwrap(), "128 191 183");
+        assert_eq!(i.next().unwrap(), "218 209 194");
+        assert_eq!(i.next().unwrap(), "223 231 207");
+        assert_eq!(i.next().unwrap(), "233 255 234");
+        assert_eq!(i.next().unwrap(), "237 243 207");
+        assert_eq!(i.next().unwrap(), "219 203 187");
+        assert_eq!(i.next().unwrap(), "212 177 147");
+        assert_eq!(i.next().unwrap(), "80 159 112");
+        assert_eq!(i.next().unwrap(), "26 204 8");
+        assert_eq!(i.next().unwrap(), "9 253 177");
+        assert_eq!(i.next().unwrap(), "247 15 242");
+        assert_eq!(i.next().unwrap(), "116 15 242");
+        assert_eq!(i.next().unwrap(), "34 239 194");
+        assert_eq!(i.next().unwrap(), "18 95 162");
+        assert_eq!(i.next().unwrap(), "9 109 12");
+        assert_eq!(i.next().unwrap(), "91 25 71");
+        assert_eq!(i.next().unwrap(), "125 9 170");
+        assert_eq!(i.next().unwrap(), "160 10 10");
+        assert_eq!(i.next().unwrap(), "175 8 138");
+        assert_eq!(i.next().unwrap(), "167 8 106");
+        assert_eq!(i.next().unwrap(), "164 56 90");
+        assert_eq!(i.next().unwrap(), "200 118 68");
+        assert_eq!(i.next().unwrap(), "206 135 91");
+        assert_eq!(i.next().unwrap(), "206 135 91");
+        assert_eq!(i.next().unwrap(), "209 140 98");
+        assert_eq!(i.next().unwrap(), "255 151 66");
+        assert_eq!(i.next().unwrap(), "255 138 50");
+        assert_eq!(i.next().unwrap(), "254 112 239");
+        assert_eq!(i.next().unwrap(), "255 108 207");
+        assert_eq!(i.next().unwrap(), "254 110 236");
+        assert_eq!(i.next().unwrap(), "202 108 56");
+        assert_eq!(i.next().unwrap(), "201 109 58");
+        assert_eq!(i.next().unwrap(), "199 105 54");
+        assert_eq!(i.next().unwrap(), "199 105 53");
+        assert_eq!(i.next().unwrap(), "197 96 42");
+        assert_eq!(i.next().unwrap(), "197 82 27");
+        assert_eq!(i.next().unwrap(), "255 78 47");
+        assert_eq!(i.next().unwrap(), "254 79 15");
+        assert_eq!(i.next().unwrap(), "255 88 0");
+        assert_eq!(i.next().unwrap(), "255 98 63");
+        assert_eq!(i.next().unwrap(), "254 127 34");
+        assert_eq!(i.next().unwrap(), "255 164 87");
+        assert_eq!(i.next().unwrap(), "213 167 133");
+        assert_eq!(i.next().unwrap(), "212 175 146");
+        assert_eq!(i.next().unwrap(), "157 168 186");
+        assert_eq!(i.next().unwrap(), "92 83 202");
+        assert_eq!(i.next().unwrap(), "86 26 244");
+        assert_eq!(i.next().unwrap(), "109 26 254");
+        assert_eq!(i.next().unwrap(), "118 31 245");
+        assert_eq!(i.next().unwrap(), "86 17 255");
+        assert_eq!(i.next().unwrap(), "37 13 178");
+        assert_eq!(i.next().unwrap(), "39 13 82");
+        assert_eq!(i.next().unwrap(), "39 12 211");
+        assert_eq!(i.next().unwrap(), "57 27 196");
+        assert_eq!(i.next().unwrap(), "67 10 15");
+        assert_eq!(i.next().unwrap(), "108 38 121");
+        assert_eq!(i.next().unwrap(), "149 3 138");
+        assert_eq!(i.next().unwrap(), "172 31 27");
+        assert_eq!(i.next().unwrap(), "186 44 12");
+        assert_eq!(i.next().unwrap(), "196 75 22");
+        assert_eq!(i.next().unwrap(), "195 84 28");
+        assert_eq!(i.next().unwrap(), "198 95 37");
+        assert_eq!(i.next().unwrap(), "197 94 36");
+        assert_eq!(i.next().unwrap(), "194 79 24");
+        assert_eq!(i.next().unwrap(), "195 78 24");
+        assert_eq!(i.next().unwrap(), "192 71 16");
+        assert_eq!(i.next().unwrap(), "191 64 155");
+        assert_eq!(i.next().unwrap(), "188 54 27");
+        assert_eq!(i.next().unwrap(), "179 35 11");
+        assert_eq!(i.next().unwrap(), "180 33 14");
+        assert_eq!(i.next().unwrap(), "236 0 2");
+        assert_eq!(i.next().unwrap(), "230 2 78");
+        assert_eq!(i.next().unwrap(), "225 3 254");
+        assert_eq!(i.next().unwrap(), "226 4 204");
+        assert_eq!(i.next().unwrap(), "200 7 170");
+        assert_eq!(i.next().unwrap(), "167 9 216");
+        assert_eq!(i.next().unwrap(), "137 14 232");
+        assert_eq!(i.next().unwrap(), "132 15 122");
+        assert_eq!(i.next().unwrap(), "161 9 12");
+        assert_eq!(i.next().unwrap(), "183 8 204");
+        assert_eq!(i.next().unwrap(), "203 7 141");
+        assert_eq!(i.next().unwrap(), "219 5 236");
+        assert_eq!(i.next().unwrap(), "203 112 65");
+        assert_eq!(i.next().unwrap(), "208 137 95");
+        assert_eq!(i.next().unwrap(), "210 160 125");
+        assert_eq!(i.next().unwrap(), "214 177 148");
+        assert_eq!(i.next().unwrap(), "217 190 169");
+    }
 }

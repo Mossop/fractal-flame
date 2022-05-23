@@ -18,12 +18,6 @@ use utils::PanicCast;
 use uuid::Uuid;
 use variations::Var;
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum ColorType {
-    Byte,
-    Hex,
-}
-
 fn try_map<T, C, F, R>(items: C, mapper: F) -> Result<Vec<R>, String>
 where
     C: IntoIterator<Item = T>,
@@ -46,32 +40,14 @@ where
     T::from_str(val).map_err(|e| format!("Unable to parse: {}", e))
 }
 
-fn color_from_str(str: &str, color_type: ColorType) -> Result<f64, String> {
-    match color_type {
-        ColorType::Byte => {
-            let byte = f64::from_str(str)
-                .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
-            Ok(fastdiv!(byte, 255.0))
-        }
-        ColorType::Hex => {
-            let byte = u8::from_str_radix(str.trim_start(), 16)
-                .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
-            // This looks odd but it matches what the original flam3 code does when the
-            // -freciprocal-math optimisation is enabled (as it is by default).
-            Ok(fastdiv!(byte as f64, 255.0))
-        }
-    }
+fn color_from_str(str: &str) -> Result<f64, String> {
+    let byte = f64::from_str(str)
+        .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
+    Ok(fastdiv!(byte, 255.0))
 }
 
-fn color_to_str(color: f64, color_type: ColorType) -> String {
-    match color_type {
-        ColorType::Byte => {
-            format!("{:.0}", color * 255.0)
-        }
-        ColorType::Hex => {
-            format!("{:02x}", (color * 255.0) as u8)
-        }
-    }
+fn color_to_str(color: f64) -> String {
+    format!("{:.0}", color * 255.0)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -120,8 +96,8 @@ impl IndexMut<usize> for Rgba {
 }
 
 impl Rgba {
-    pub(crate) fn from_str_list(list: &str, color_type: ColorType) -> Result<Self, String> {
-        let values = try_map(list.split(' '), |s| color_from_str(s, color_type))?;
+    pub(crate) fn from_str_list(list: &str) -> Result<Self, String> {
+        let values = try_map(list.split(' '), color_from_str)?;
 
         if values.len() < 3 || values.len() > 4 {
             return Err(format!("Unexpected number of color values: '{}'", list));
@@ -141,21 +117,21 @@ impl Rgba {
         self.alpha < 1.0
     }
 
-    pub(crate) fn to_str_list(&self, color_type: ColorType) -> String {
+    pub(crate) fn to_str_list(&self) -> String {
         if self.has_opacity() {
             format!(
                 "{} {} {} {}",
-                color_to_str(self.red, color_type),
-                color_to_str(self.green, color_type),
-                color_to_str(self.blue, color_type),
-                color_to_str(self.alpha, color_type),
+                color_to_str(self.red),
+                color_to_str(self.green),
+                color_to_str(self.blue),
+                color_to_str(self.alpha),
             )
         } else {
             format!(
                 "{} {} {}",
-                color_to_str(self.red, color_type),
-                color_to_str(self.green, color_type),
-                color_to_str(self.blue, color_type),
+                color_to_str(self.red),
+                color_to_str(self.green),
+                color_to_str(self.blue),
             )
         }
     }
