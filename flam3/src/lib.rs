@@ -510,9 +510,6 @@ pub struct Genome {
     /// An optional final transform that is applied every iteration after the
     /// randomly selected transform.
     pub final_transform: Option<Transform>,
-
-    pub chaos: Vec<Vec<f64>>,
-    pub chaos_enable: bool,
 }
 
 fn round6(mut x: f64) -> f64 {
@@ -528,7 +525,6 @@ fn round6(mut x: f64) -> f64 {
 impl Genome {
     pub fn add_transform(&mut self, transform: Transform) {
         self.transforms.push(transform);
-        self.chaos = vec![vec![1.0; self.transforms.len()]; self.transforms.len()];
     }
 
     pub fn add_symmetry(&mut self, mut kind: i32) {
@@ -546,7 +542,7 @@ impl Genome {
             kind = -kind;
         }
 
-        let a = 2.0 * PI / (kind.f64());
+        let a = 2.0 * PI / kind.f64();
 
         for k in 1..kind {
             let x = round6(((k.f64()) * a).cos());
@@ -612,8 +608,6 @@ impl Default for Genome {
             gamma_threshold: 0.01,
             transforms: Vec::new(),
             final_transform: None,
-            chaos: Vec::new(),
-            chaos_enable: false,
         }
     }
 }

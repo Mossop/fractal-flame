@@ -304,20 +304,12 @@ fn flam3_interpolate(genomes: &[Genome], _time: f64, _stagger: f64) -> Result<Ge
     unimplemented!();
 }
 
-fn flam3_create_chaos_distrib(
-    cp: &Genome,
-    xi: Option<usize>,
-    xform_distrib: &mut [usize],
-) -> Result<(), String> {
+fn flam3_create_chaos_distrib(cp: &Genome, xform_distrib: &mut [usize]) -> Result<(), String> {
     let num_std = cp.transforms.len();
 
     let mut dr = 0.0;
     for i in 0..num_std {
-        let mut d = cp.transforms[i].density;
-
-        if let Some(index) = xi {
-            d *= cp.chaos[index][i];
-        }
+        let d = cp.transforms[i].density;
 
         if d < 0.0 {
             return Err("transform weight must be non-negative".to_string());
@@ -334,20 +326,13 @@ fn flam3_create_chaos_distrib(
 
     let mut j = 0;
     let mut t = cp.transforms[0].density;
-    if let Some(index) = xi {
-        t *= cp.chaos[index][0];
-    }
 
     let mut r = 0.0;
     for distrib_val in xform_distrib.iter_mut().take(CHOOSE_XFORM_GRAIN) {
         while r >= t {
             j += 1;
 
-            if let Some(index) = xi {
-                t += cp.transforms[j].density * cp.chaos[index][j];
-            } else {
-                t += cp.transforms[j].density;
-            }
+            t += cp.transforms[j].density;
         }
 
         *distrib_val = j;
@@ -357,66 +342,34 @@ fn flam3_create_chaos_distrib(
     Ok(())
 }
 
-fn flam3_check_unity_chaos(cp: &Genome) -> bool {
-    for i in 0..cp.transforms.len() {
-        for j in 0..cp.transforms.len() {
-            if (cp.chaos[i][j] - 1.0).abs() > 1e-10 {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
 struct TransformSelector {
-    chaos_enable: bool,
     xform_distrib: Vec<usize>,
-    last_index: usize,
 }
 
 impl TransformSelector {
     fn new(cp: &Genome) -> Result<Self, String> {
-        let numrows = cp.transforms.len() + 1;
-        let mut xform_distrib = vec![0_usize; numrows * CHOOSE_XFORM_GRAIN];
+        let mut xform_distrib = vec![0_usize; CHOOSE_XFORM_GRAIN];
 
         /* First, set up the first row of the xform_distrib (raw weights) */
-        flam3_create_chaos_distrib(cp, None, &mut xform_distrib)?;
+        flam3_create_chaos_distrib(cp, &mut xform_distrib)?;
 
         /* Check for non-unity chaos */
-        let chaos_enable = !flam3_check_unity_chaos(cp);
+        let chaos_enable = false;
 
         if chaos_enable {
             /* Now set up a row for each of the xforms */
             for i in 0..cp.transforms.len() {
-                flam3_create_chaos_distrib(
-                    cp,
-                    Some(i),
-                    &mut xform_distrib[CHOOSE_XFORM_GRAIN * i..],
-                )?;
+                flam3_create_chaos_distrib(cp, &mut xform_distrib[CHOOSE_XFORM_GRAIN * i..])?;
             }
         }
 
-        Ok(Self {
-            chaos_enable,
-            xform_distrib,
-            last_index: 0,
-        })
-    }
-
-    fn reset(&mut self) {
-        self.last_index = 0;
+        Ok(Self { xform_distrib })
     }
 
     fn next<'a>(&mut self, cp: &'a Genome, rng: &mut Flam3Rng) -> &'a Transform {
         let rand = rng.irand();
-        let dist_index =
-            self.last_index * CHOOSE_XFORM_GRAIN + (rand.usize() & CHOOSE_XFORM_GRAIN_M1);
+        let dist_index = rand.usize() & CHOOSE_XFORM_GRAIN_M1;
         let xform_index = self.xform_distrib[dist_index];
-
-        if self.chaos_enable {
-            self.last_index = xform_index;
-        }
 
         &cp.transforms[xform_index]
     }

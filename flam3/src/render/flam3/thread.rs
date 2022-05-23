@@ -43,8 +43,6 @@ fn flam3_iterate(
 
     let mut p = [samples[0], samples[1], samples[2], samples[3]];
 
-    selector.reset();
-
     let mut precalcs = TransformPrecalcs::default();
 
     let mut iteration = -(skip_iterations.i32());
