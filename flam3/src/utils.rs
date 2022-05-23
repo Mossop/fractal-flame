@@ -206,3 +206,15 @@ impl PanicCast for f64 {
         self
     }
 }
+
+/// Simulates the -freciprocal-math optimisation when enabled.
+#[macro_export]
+macro_rules! fastdiv {
+    ($num:expr, $den:expr) => {
+        if cfg!(fastmath) {
+            $num * (1.0 / $den)
+        } else {
+            $num / $den
+        }
+    };
+}

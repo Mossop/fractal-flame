@@ -50,16 +50,14 @@ fn color_from_str(str: &str, color_type: ColorType) -> Result<f64, String> {
         ColorType::Byte => {
             let byte = f64::from_str(str)
                 .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
-            // This looks odd but it matches what the original flam3 code does when the
-            // -freciprocal-math optimisation is enabled (as it is by default).
-            Ok(byte * (1.0 / 255.0))
+            Ok(fastdiv!(byte, 255.0))
         }
         ColorType::Hex => {
             let byte = u8::from_str_radix(str.trim_start(), 16)
                 .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
             // This looks odd but it matches what the original flam3 code does when the
             // -freciprocal-math optimisation is enabled (as it is by default).
-            Ok((byte as f64) * (1.0 / 255.0))
+            Ok(fastdiv!(byte as f64, 255.0))
         }
     }
 }

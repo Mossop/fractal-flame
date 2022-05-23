@@ -13,3 +13,6 @@ flam3 = { path = "../flam3" }
 clap = { version = "3.1.16", features = ["derive"] }
 flexi_logger = "0.22.3"
 png = "0.17.5"
+
+[features]
+fastmath = ["flam3/fastmath"]

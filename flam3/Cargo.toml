@@ -21,5 +21,8 @@ rand = "0.8.5"
 uuid = { version = "1.0.0", features = ["v4"] }
 lazy_static = "1.4.0"
 
+[features]
+fastmath = []
+
 [dev-dependencies]
 png = "0.17.5"

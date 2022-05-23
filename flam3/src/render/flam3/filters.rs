@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::{utils::PanicCast, SpatialFilter, TemporalFilter};
+use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilter};
 
 use super::{Field, Flam3DeHelper, Flam3Frame};
 
@@ -428,7 +428,7 @@ pub(super) fn flam3_create_de_filters(
             comp_max_radius / (filtloop + 1).f64().powf(curve)
         } else {
             let adjloop = (filtloop - keep_thresh).f64().powf(1.0 / curve) + keep_thresh.f64();
-            comp_max_radius * (1.0 / (adjloop + 1.0).powf(curve))
+            fastdiv!(comp_max_radius, (adjloop + 1.0).powf(curve))
         };
 
         /* Once we've reached the min radius, don't populate any more */
