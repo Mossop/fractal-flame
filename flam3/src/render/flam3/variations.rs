@@ -161,13 +161,13 @@ pub trait Flam3Variation: Variation {
     }
 }
 
-pub struct Flam3IterHelper {
+pub struct Flam3IterHelper<'a> {
     p0: f64,
     p1: f64,
     tx: f64,
     ty: f64,
 
-    rc: Flam3Rng,
+    rc: &'a mut Flam3Rng,
 
     sumsq: Option<f64>,
     sqrt: Option<f64>,
@@ -177,14 +177,14 @@ pub struct Flam3IterHelper {
     atanyx: Option<f64>,
 }
 
-impl Flam3IterHelper {
-    fn new(coords: Coordinate, rc: &Flam3Rng) -> Self {
+impl<'a> Flam3IterHelper<'a> {
+    fn new(coords: Coordinate, rc: &'a mut Flam3Rng) -> Self {
         Self {
             p0: 0.0,
             p1: 0.0,
             tx: coords.x,
             ty: coords.y,
-            rc: rc.clone(),
+            rc,
             sumsq: None,
             sqrt: None,
             atan: None,
