@@ -1610,7 +1610,7 @@ impl Flam3Variation for variations::Oscilloscope {
         let t = if self.damping == 0.0 {
             self.amplitude * (tpf * f.tx).cos() + self.separation
         } else {
-            self.amplitude * (-f.tx.abs().exp() * self.damping) * (tpf * f.tx).cos()
+            self.amplitude * (-f.tx.abs() * self.damping).exp() * (tpf * f.tx).cos()
                 + self.separation
         };
 
