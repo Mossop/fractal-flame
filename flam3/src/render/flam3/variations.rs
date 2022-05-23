@@ -348,7 +348,7 @@ impl Flam3Variation for variations::Heart {
         let a = f.sqrt() * f.atan();
         let r = self.weight() * f.sqrt();
 
-        let (ca, sa) = sincos(a);
+        let (sa, ca) = sincos(a);
 
         f.p0 += r * sa;
         f.p1 += (-r) * ca;
