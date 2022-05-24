@@ -48,10 +48,12 @@ jobs:
           LLVM_PROFILE_FILE: flam3-%p-%m.profraw
 
       - name: Generate coverage
-        run: grcov . --binary-path ./target/release/ -t coveralls -s . --token coveralls
+        run: grcov . --binary-path ./target/release/ -t coveralls -s . --token coveralls >coveralls.json
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
+        with:
+          files: ./coveralls.json
 
       - name: Clippy
         uses: actions-rs/clippy-check@v1
