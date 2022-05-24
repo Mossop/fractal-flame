@@ -55,6 +55,7 @@ jobs:
 
       - name: Run tests
         uses: actions-rs/cargo@v1
+        continue-on-error: true
         with:
           command: tarpaulin
           args: --release
