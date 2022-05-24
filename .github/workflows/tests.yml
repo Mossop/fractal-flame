@@ -48,6 +48,9 @@ jobs:
           command: fmt
           args: --check
 
+      - name: Install Tarpaulin
+        run: cargo install cargo-tarpaulin
+
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
