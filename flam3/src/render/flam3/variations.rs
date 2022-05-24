@@ -25,11 +25,6 @@ fn badvalue(x: f64) -> bool {
     !x.is_finite() || (x > 1e10) || (x < -1e10)
 }
 
-fn rint(a: f64) -> f64 {
-    let b = if a < 0.0 { -0.5 } else { 0.5 };
-    (a + b).trunc()
-}
-
 macro_rules! upsert {
     ($var:expr, $($body:tt)*) => {{
         if !$var.is_some() {
@@ -1254,8 +1249,8 @@ impl Flam3Variation for variations::Boarders {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let round_x = rint(f.tx);
-        let round_y = rint(f.ty);
+        let round_x = f.tx.round();
+        let round_y = f.ty.round();
         let offset_x = f.tx - round_x;
         let offset_y = f.ty - round_y;
 
