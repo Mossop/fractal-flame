@@ -98,7 +98,7 @@ macro_rules! variations {
             match var {
                 $(
                     Var::$var(v) => {
-                        attrs.push(($name.to_string(), v.variation_weight.to_string()));
+                        attrs.push(($name.to_string(), v.weight.to_string()));
                         $(
                             attrs.push(($attr.to_string(), v.$field.to_string()));
                         )*
@@ -111,11 +111,11 @@ macro_rules! variations {
             $(
                 if index == $index {
                     let mut variation = variations::$var::default();
-                    variation.variation_weight = weight;
+                    variation.weight = weight;
 
                     variation = if let Some(_attrs) = attrs {
                         variations::$var {
-                            variation_weight: weight,
+                            weight,
                             $(
                                 $field: if let Some(val) = _attrs.remove($attr) {
                                     parse(&val)?
@@ -125,7 +125,7 @@ macro_rules! variations {
                             )*
                         }
                     } else {
-                        variation.variation_weight = weight;
+                        variation.weight = weight;
                         variation
                     };
 
@@ -368,7 +368,7 @@ variations! {
     (95, Coth, "coth", {}),
     (96, Auger, "auger", {
         symmetry: "auger_sym",
-        weight: "auger_weight",
+        strength: "auger_weight",
         frequency: "auger_freq",
         scale: "auger_scale",
     }),

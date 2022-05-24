@@ -2,20 +2,19 @@ use std::f64::consts::PI;
 
 pub trait Variation {
     fn name(&self) -> String;
-    fn weight(&self) -> f64;
 }
 
 macro_rules! variation {
     ($typ:ident) => {
         #[derive(Debug, Clone, PartialEq)]
         pub struct $typ {
-            pub variation_weight: f64,
+            pub weight: f64,
         }
 
         impl Default for $typ {
             fn default() -> Self {
                 Self {
-                    variation_weight: 1.0,
+                    weight: 1.0,
                 }
             }
         }
@@ -23,10 +22,6 @@ macro_rules! variation {
         impl Variation for $typ {
             fn name(&self) -> String {
                 stringify!($typ).to_string()
-            }
-
-            fn weight(&self) -> f64 {
-                self.variation_weight
             }
         }
     };
@@ -37,7 +32,7 @@ macro_rules! variation {
     }) => {
         #[derive(Debug, Clone, PartialEq)]
         pub struct $typ {
-            pub variation_weight: f64,
+            pub weight: f64,
             $(
                 $field_vis $field_name: $field_type,
             )*
@@ -46,7 +41,7 @@ macro_rules! variation {
         impl Default for $typ {
             fn default() -> Self {
                 Self {
-                    variation_weight: 1.0,
+                    weight: 1.0,
                     $(
                         $field_name: $default,
                     )*
@@ -57,10 +52,6 @@ macro_rules! variation {
         impl Variation for $typ {
             fn name(&self) -> String {
                 stringify!($typ).to_string()
-            }
-
-            fn weight(&self) -> f64 {
-                self.variation_weight
             }
         }
     };
@@ -296,7 +287,7 @@ variation!(Csch);
 variation!(Coth);
 variation!(Auger, {
     pub symmetry: f64 = 0.0,
-    pub weight: f64 = 0.5,
+    pub strength: f64 = 0.5,
     pub frequency: f64 = 1.0,
     pub scale: f64 = 1.0,
 });
@@ -545,9 +536,5 @@ macro_rules! with_var {
 impl Variation for Var {
     fn name(&self) -> String {
         with_var!(self, v, v.name())
-    }
-
-    fn weight(&self) -> f64 {
-        with_var!(self, v, v.weight())
     }
 }
