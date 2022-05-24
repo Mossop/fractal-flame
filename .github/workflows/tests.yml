@@ -39,11 +39,13 @@ jobs:
 
       - name: Clippy
         uses: actions-rs/clippy-check@v1
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rustfmt
         uses: actions-rs/cargo@v1
+        continue-on-error: true
         with:
           command: fmt
           args: --check
