@@ -29,13 +29,29 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
+      
+      - name: Install grcov
+        run: cargo install grcov
 
-      - name: Cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --release
+      - name: Build
+        run: cargo build --release
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
+          LLVM_PROFILE_FILE: flam3-%p-%m.profraw
+
+      - name: Run tests
+        run: cargo test --release
+        continue-on-error: true
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
+          LLVM_PROFILE_FILE: flam3-%p-%m.profraw
+
+      - name: Generate coverage
+        run: grcov . --binary-path ./target/release/ -t coveralls -s . --token coveralls
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
 
       - name: Clippy
         uses: actions-rs/clippy-check@v1
@@ -49,16 +65,3 @@ jobs:
         with:
           command: fmt
           args: --check
-
-      - name: Install Tarpaulin
-        run: cargo install cargo-tarpaulin
-
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        continue-on-error: true
-        with:
-          command: tarpaulin
-          args: --release --no-fail-fast
-
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2
