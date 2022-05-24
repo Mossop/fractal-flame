@@ -105,7 +105,7 @@ impl VariationPrecalculations {
     }
 
     fn radial_blur_precalc(&mut self, var: &variations::RadialBlur) {
-        let (spinvar, zoomvar) = sincos(var.angle * M_PI / 2.0);
+        let (spinvar, zoomvar) = (var.angle * M_PI / 2.0).sin_cos();
         self.radial_blur_spinvar = Some(spinvar);
         self.radial_blur_zoomvar = Some(zoomvar);
     }
@@ -123,7 +123,7 @@ impl VariationPrecalculations {
 
         self.disc2_timespi = Some(var.rotate * M_PI);
 
-        let (mut sinadd, mut cosadd) = sincos(add);
+        let (mut sinadd, mut cosadd) = add.sin_cos();
         cosadd -= 1.0;
 
         if add > 2.0 * M_PI {
@@ -219,10 +219,6 @@ impl<'a> Flam3IterHelper<'a> {
     }
 }
 
-fn sincos(a: f64) -> (f64, f64) {
-    a.sin_cos()
-}
-
 impl Flam3Variation for Var {
     fn apply(
         &self,
@@ -285,7 +281,7 @@ impl Flam3Variation for variations::Swirl {
     ) {
         let r2 = f.sumsq();
 
-        let (c1, c2) = sincos(r2);
+        let (c1, c2) = r2.sin_cos();
         let nx = c1 * f.tx - c2 * f.ty;
         let ny = c2 * f.tx + c1 * f.ty;
 
@@ -348,7 +344,7 @@ impl Flam3Variation for variations::Heart {
         let a = f.sqrt() * f.atan();
         let r = self.weight() * f.sqrt();
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * sa;
         f.p1 += (-r) * ca;
@@ -364,7 +360,7 @@ impl Flam3Variation for variations::Disc {
     ) {
         let a = f.atan() * M_1_PI;
         let r = M_PI * f.sqrt();
-        let (sr, cr) = sincos(r);
+        let (sr, cr) = r.sin_cos();
 
         f.p0 += self.weight() * sr * a;
         f.p1 += self.weight() * cr * a;
@@ -380,7 +376,7 @@ impl Flam3Variation for variations::Spiral {
     ) {
         let r = f.sqrt() + EPS;
         let r1 = self.weight() / r;
-        let (sr, cr) = sincos(r);
+        let (sr, cr) = r.sin_cos();
 
         f.p0 += r1 * (f.cosa() + sr);
         f.p1 += r1 * (f.sina() - cr);
@@ -409,7 +405,7 @@ impl Flam3Variation for variations::Diamond {
         _precalc: &mut VariationPrecalculations,
     ) {
         let r = f.sqrt();
-        let (sr, cr) = sincos(r);
+        let (sr, cr) = r.sin_cos();
 
         f.p0 += self.weight() * f.sina() * cr;
         f.p1 += self.weight() * f.cosa() * sr;
@@ -453,7 +449,7 @@ impl Flam3Variation for variations::Julia {
 
         let r = self.weight() * (f.sqrt()).sqrt();
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * ca;
         f.p1 += r * sa;
@@ -542,7 +538,7 @@ impl Flam3Variation for variations::Exponential {
         let dx = self.weight() * (f.tx - 1.0).exp();
         let dy = M_PI * f.ty;
 
-        let (sdy, cdy) = sincos(dy);
+        let (sdy, cdy) = dy.sin_cos();
 
         f.p0 += dx * cdy;
         f.p1 += dx * sdy;
@@ -572,7 +568,7 @@ impl Flam3Variation for variations::Cosine {
     ) {
         let a = f.tx * M_PI;
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
         let nx = ca * (f.ty).cosh();
         let ny = -sa * (f.ty).sinh();
 
@@ -612,7 +608,7 @@ impl Flam3Variation for variations::Fan {
         let r = self.weight() * f.sqrt();
 
         a += if ((a + dy) % dx) > dx2 { -dx2 } else { dx2 };
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * ca;
         f.p1 += r * sa;
@@ -675,7 +671,7 @@ impl Flam3Variation for variations::Fan2 {
             a += dx2;
         }
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * sa;
         f.p1 += r * ca;
@@ -761,7 +757,7 @@ impl Flam3Variation for variations::Noise {
         _precalc: &mut VariationPrecalculations,
     ) {
         let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
-        let (sinr, cosr) = sincos(tmpr);
+        let (sinr, cosr) = tmpr.sin_cos();
 
         let r = self.weight() * f.rc.isaac_01();
 
@@ -782,7 +778,7 @@ impl Flam3Variation for variations::Julian {
         let tmpr = (f.atanyx() + 2.0 * M_PI * t_rnd) / self.power;
 
         let r = self.weight() * f.sumsq().powf(precalc.julian_cn.unwrap());
-        let (sina, cosa) = sincos(tmpr);
+        let (sina, cosa) = tmpr.sin_cos();
 
         f.p0 += r * cosa;
         f.p1 += r * sina;
@@ -804,7 +800,7 @@ impl Flam3Variation for variations::Juliascope {
             (2.0 * M_PI * t_rnd - f.atanyx()) / self.power
         };
 
-        let (sina, cosa) = sincos(tmpr);
+        let (sina, cosa) = tmpr.sin_cos();
 
         let r = self.weight() * f.sumsq().powf(precalc.juliascope_cn.unwrap());
 
@@ -821,7 +817,7 @@ impl Flam3Variation for variations::Blur {
         _precalc: &mut VariationPrecalculations,
     ) {
         let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
-        let (sinr, cosr) = sincos(tmpr);
+        let (sinr, cosr) = tmpr.sin_cos();
 
         let r = self.weight() * f.rc.isaac_01();
 
@@ -838,7 +834,7 @@ impl Flam3Variation for variations::GaussianBlur {
         _precalc: &mut VariationPrecalculations,
     ) {
         let ang = f.rc.isaac_01() * 2.0 * M_PI;
-        let (sina, cosa) = sincos(ang);
+        let (sina, cosa) = ang.sin_cos();
 
         let r = self.weight()
             * (f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() - 2.0);
@@ -862,7 +858,7 @@ impl Flam3Variation for variations::RadialBlur {
         /* Calculate angle & zoom */
         let ra = f.sqrt();
         let tmpa = f.atanyx() + precalc.radial_blur_spinvar.unwrap() * rnd;
-        let (sa, ca) = sincos(tmpa);
+        let (sa, ca) = tmpa.sin_cos();
         let rz = precalc.radial_blur_zoomvar.unwrap() * rnd - 1.0;
 
         f.p0 += ra * ca + rz * f.tx;
@@ -880,7 +876,7 @@ impl Flam3Variation for variations::Pie {
         let sl = (f.rc.isaac_01() * self.slices + 0.5).trunc();
         let a = self.rotation + 2.0 * M_PI * (sl + f.rc.isaac_01() * self.thickness) / self.slices;
         let r = self.weight() * f.rc.isaac_01();
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * ca;
         f.p1 += r * sa;
@@ -964,7 +960,7 @@ impl Flam3Variation for variations::Arch {
          */
 
         let ang = f.rc.isaac_01() * self.weight() * M_PI;
-        let (sinr, cosr) = sincos(ang);
+        let (sinr, cosr) = ang.sin_cos();
 
         f.p0 += self.weight() * sinr;
         f.p1 += self.weight() * (sinr * sinr) / cosr;
@@ -1032,7 +1028,7 @@ impl Flam3Variation for variations::Blade {
 
         let r = f.rc.isaac_01() * self.weight() * f.sqrt();
 
-        let (sinr, cosr) = sincos(r);
+        let (sinr, cosr) = r.sin_cos();
 
         f.p0 += self.weight() * f.tx * (cosr + sinr);
         f.p1 += self.weight() * f.tx * (cosr - sinr);
@@ -1082,7 +1078,7 @@ impl Flam3Variation for variations::Twintrian {
          */
         let r = f.rc.isaac_01() * self.weight() * f.sqrt();
 
-        let (sinr, cosr) = sincos(r);
+        let (sinr, cosr) = r.sin_cos();
         let mut diff = (sinr * sinr).log10() + cosr;
 
         if badvalue(diff) {
@@ -1117,7 +1113,7 @@ impl Flam3Variation for variations::Disc2 {
         precalc: &mut VariationPrecalculations,
     ) {
         let t = precalc.disc2_timespi.unwrap() * (f.tx + f.ty);
-        let (sinr, cosr) = sincos(t);
+        let (sinr, cosr) = t.sin_cos();
         let r = self.weight() * f.atan() / M_PI;
 
         f.p0 += (sinr + precalc.disc2_cosadd.unwrap()) * r;
@@ -1134,7 +1130,7 @@ impl Flam3Variation for variations::SuperShape {
     ) {
         let theta = precalc.super_shape_pm_4.unwrap() * f.atanyx() + M_PI_4;
 
-        let (st, ct) = sincos(theta);
+        let (st, ct) = theta.sin_cos();
 
         let t1 = ct.abs().powf(self.n2);
         let t2 = st.abs().powf(self.n3);
@@ -1193,7 +1189,7 @@ impl Flam3Variation for variations::Parabola {
     ) {
         let r = f.sqrt();
 
-        let (sr, cr) = sincos(r);
+        let (sr, cr) = r.sin_cos();
 
         // TODO: Figure out why this fixes things.
         format!(
@@ -1357,7 +1353,7 @@ impl Flam3Variation for variations::Cpow {
 
         let m = self.weight() * (vc * lnr - vd * a).exp();
 
-        let (sa, ca) = sincos(ang);
+        let (sa, ca) = ang.sin_cos();
 
         f.p0 += m * ca;
         f.p1 += m * sa;
@@ -1403,7 +1399,7 @@ impl Flam3Variation for variations::Edisc {
         let a2 = -(f.tx / xmax).acos();
         let w = self.weight() / 11.57034632;
 
-        let (mut snv, csv) = sincos(a1);
+        let (mut snv, csv) = a1.sin_cos();
 
         let snhu = (a2).sinh();
         let cshu = (a2).cosh();
@@ -1464,7 +1460,7 @@ impl Flam3Variation for variations::Escher {
         let a = f.atanyx();
         let lnr = 0.5 * f.sumsq().ln();
 
-        let (seb, ceb) = sincos(self.beta);
+        let (seb, ceb) = self.beta.sin_cos();
 
         let vc = 0.5 * (1.0 + ceb);
         let vd = 0.5 * seb;
@@ -1472,7 +1468,7 @@ impl Flam3Variation for variations::Escher {
         let m = self.weight() * (vc * lnr - vd * a).exp();
         let n = vc * a + vd * lnr;
 
-        let (sn, cn) = sincos(n);
+        let (sn, cn) = n.sin_cos();
 
         f.p0 += m * cn;
         f.p1 += m * sn;
@@ -1489,7 +1485,7 @@ impl Flam3Variation for variations::Foci {
         let expx = (f.tx).exp() * 0.5;
         let expnx = 0.25 / expx;
 
-        let (sn, cn) = sincos(f.ty);
+        let (sn, cn) = f.ty.sin_cos();
         let tmp = self.weight() / (expx + expnx - cn);
 
         f.p0 += tmp * (expx - expnx);
@@ -1510,7 +1506,7 @@ impl Flam3Variation for variations::Lazysusan {
 
         if r < self.weight() {
             let a = y.atan2(x) + self.spin + self.twist * (self.weight() - r);
-            let (sina, cosa) = sincos(a);
+            let (sina, cosa) = a.sin_cos();
             r *= self.weight();
 
             f.p0 += r * cosa + self.x;
@@ -1563,7 +1559,7 @@ impl Flam3Variation for variations::PreBlur {
             * (f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() - 2.0);
         let rnd_a = f.rc.isaac_01() * 2.0 * M_PI;
 
-        let (sin_a, cos_a) = sincos(rnd_a);
+        let (sin_a, cos_a) = rnd_a.sin_cos();
 
         /* Note: original coordinate changed */
         f.tx += rnd_g * cos_a;
@@ -1778,7 +1774,7 @@ impl Flam3Variation for variations::Wedge {
 
         a = a * comp_fac + c * self.angle;
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         r = self.weight() * (r + self.hole);
 
@@ -1801,7 +1797,7 @@ impl Flam3Variation for variations::WedgeJulia {
 
         a = a * precalc.wedge_julia_cf.unwrap() + c * self.angle;
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += r * ca;
         f.p1 += r * sa;
@@ -1823,7 +1819,7 @@ impl Flam3Variation for variations::WedgeSph {
 
         a = a * comp_fac + c * self.angle;
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
         r = self.weight() * (r + self.hole);
 
         f.p0 += r * ca;
@@ -1852,7 +1848,7 @@ impl Flam3Variation for variations::Whorl {
             f.atanyx() + self.outside / (self.weight() - r)
         };
 
-        let (sa, ca) = sincos(a);
+        let (sa, ca) = a.sin_cos();
 
         f.p0 += self.weight() * r * ca;
         f.p1 += self.weight() * r * sa;
@@ -1879,7 +1875,7 @@ impl Flam3Variation for variations::Exp {
         _precalc: &mut VariationPrecalculations,
     ) {
         let expe = (f.tx).exp();
-        let (expsin, expcos) = sincos(f.ty);
+        let (expsin, expcos) = f.ty.sin_cos();
         f.p0 += self.weight() * expe * expcos;
         f.p1 += self.weight() * expe * expsin;
     }
@@ -1904,7 +1900,7 @@ impl Flam3Variation for variations::Sin {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (sinsin, sinacos) = sincos(f.tx);
+        let (sinsin, sinacos) = f.tx.sin_cos();
         let sinsinh = f.ty.sinh();
         let sincosh = f.ty.cosh();
         f.p0 += self.weight() * sinsin * sincosh;
@@ -1919,7 +1915,7 @@ impl Flam3Variation for variations::Cos {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (cossin, coscos) = sincos(f.tx);
+        let (cossin, coscos) = f.tx.sin_cos();
         let cossinh = f.ty.sinh();
         let coscosh = f.ty.cosh();
         f.p0 += self.weight() * coscos * coscosh;
@@ -1934,7 +1930,7 @@ impl Flam3Variation for variations::Tan {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (tansin, tancos) = sincos(2.0 * f.tx);
+        let (tansin, tancos) = (2.0 * f.tx).sin_cos();
         let tansinh = (2.0 * f.ty).sinh();
         let tancosh = (2.0 * f.ty).cosh();
         let tanden = 1.0 / (tancos + tancosh);
@@ -1950,7 +1946,7 @@ impl Flam3Variation for variations::Sec {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (secsin, seccos) = sincos(f.tx);
+        let (secsin, seccos) = f.tx.sin_cos();
         let secsinh = f.ty.sinh();
         let seccosh = (f.ty).cosh();
         let secden = 2.0 / ((2.0 * f.tx).cos() + (2.0 * f.ty).cosh());
@@ -1966,7 +1962,7 @@ impl Flam3Variation for variations::Csc {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (cscsin, csccos) = sincos(f.tx);
+        let (cscsin, csccos) = f.tx.sin_cos();
         let cscsinh = f.ty.sinh();
         let csccosh = (f.ty).cosh();
         let cscden = 2.0 / ((2.0 * f.ty).cosh() - (2.0 * f.tx).cos());
@@ -1982,7 +1978,7 @@ impl Flam3Variation for variations::Cot {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (cotsin, cotcos) = sincos(2.0 * f.tx);
+        let (cotsin, cotcos) = (2.0 * f.tx).sin_cos();
         let cotsinh = (2.0 * f.ty).sinh();
         let cotcosh = (2.0 * f.ty).cosh();
         let cotden = 1.0 / (cotcosh - cotcos);
@@ -1998,7 +1994,7 @@ impl Flam3Variation for variations::Sinh {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (sinhsin, sinhcos) = sincos(f.ty);
+        let (sinhsin, sinhcos) = f.ty.sin_cos();
         let sinhsinh = f.tx.sinh();
         let sinhcosh = (f.tx).cosh();
         f.p0 += self.weight() * sinhsinh * sinhcos;
@@ -2013,7 +2009,7 @@ impl Flam3Variation for variations::Cosh {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (coshsin, coshcos) = sincos(f.ty);
+        let (coshsin, coshcos) = f.ty.sin_cos();
         let coshsinh = f.tx.sinh();
         let coshcosh = (f.tx).cosh();
         f.p0 += self.weight() * coshcosh * coshcos;
@@ -2028,7 +2024,7 @@ impl Flam3Variation for variations::Tanh {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (tanhsin, tanhcos) = sincos(2.0 * f.ty);
+        let (tanhsin, tanhcos) = (2.0 * f.ty).sin_cos();
         let tanhsinh = (2.0 * f.tx).sinh();
         let tanhcosh = (2.0 * f.tx).cosh();
         let tanhden = 1.0 / (tanhcos + tanhcosh);
@@ -2044,7 +2040,7 @@ impl Flam3Variation for variations::Sech {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (sechsin, sechcos) = sincos(f.ty);
+        let (sechsin, sechcos) = f.ty.sin_cos();
         let sechsinh = (f.tx).sinh();
         let sechcosh = (f.tx).cosh();
         let sechden = 2.0 / ((2.0 * f.ty).cos() + (2.0 * f.tx).cosh());
@@ -2060,7 +2056,7 @@ impl Flam3Variation for variations::Csch {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (cschsin, cschcos) = sincos(f.ty);
+        let (cschsin, cschcos) = f.ty.sin_cos();
         let cschsinh = (f.tx).sinh();
         let cschcosh = (f.tx).cosh();
         let cschden = 2.0 / ((2.0 * f.tx).cosh() - (2.0 * f.ty).cos());
@@ -2076,7 +2072,7 @@ impl Flam3Variation for variations::Coth {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let (cothsin, cothcos) = sincos(2.0 * f.ty);
+        let (cothsin, cothcos) = (2.0 * f.ty).sin_cos();
         let cothsinh = (2.0 * f.tx).sinh();
         let cothcosh = (2.0 * f.tx).cosh();
         let cothden = 1.0 / (cothcosh - cothcos);
