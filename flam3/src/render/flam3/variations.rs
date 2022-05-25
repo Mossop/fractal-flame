@@ -1186,11 +1186,6 @@ impl Flam3Variation for variations::Parabola {
 
         let (sr, cr) = r.sin_cos();
 
-        // TODO: Figure out why this fixes things.
-        format!(
-            "Parabola {:.10} {:.10} {:.10} {:.10} {:.10}",
-            r, sr, cr, f.p0, f.p1
-        );
         f.p0 += self.height * self.weight * sr * sr * f.rc.isaac_01();
         f.p1 += self.width * self.weight * cr * f.rc.isaac_01();
     }

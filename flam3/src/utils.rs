@@ -1,3 +1,17 @@
+use std::{fmt::Display, str::FromStr};
+
+/// Simulates the -freciprocal-math optimisation when enabled.
+#[macro_export]
+macro_rules! fastdiv {
+    ($num:expr, $den:expr) => {
+        if cfg!(fastmath) {
+            $num * (1.0 / $den)
+        } else {
+            $num / $den
+        }
+    };
+}
+
 pub(crate) trait PanicCast {
     fn i32(self) -> i32;
     fn u8(self) -> u8;
@@ -207,14 +221,34 @@ impl PanicCast for f64 {
     }
 }
 
-/// Simulates the -freciprocal-math optimisation when enabled.
-#[macro_export]
-macro_rules! fastdiv {
-    ($num:expr, $den:expr) => {
-        if cfg!(fastmath) {
-            $num * (1.0 / $den)
-        } else {
-            $num / $den
-        }
-    };
+pub fn try_map<T, C, F, R>(items: C, mapper: F) -> Result<Vec<R>, String>
+where
+    C: IntoIterator<Item = T>,
+    F: Fn(T) -> Result<R, String>,
+{
+    let mut result = Vec::new();
+
+    for item in items {
+        result.push(mapper(item)?);
+    }
+
+    Ok(result)
+}
+
+pub fn parse<T>(val: &str) -> Result<T, String>
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    T::from_str(val).map_err(|e| format!("Unable to parse: {}", e))
+}
+
+pub fn color_from_str(str: &str) -> Result<f64, String> {
+    let byte = f64::from_str(str)
+        .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
+    Ok(fastdiv!(byte, 255.0))
+}
+
+pub fn color_to_str(color: f64) -> String {
+    format!("{:.0}", color * 255.0)
 }

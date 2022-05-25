@@ -1,9 +1,36 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
-use flam3::{flam3_from_reader, render, RenderOptions};
+use flam3::{flam3_from_reader, render, Hsva, RenderOptions, Rgba};
 use png::{BitDepth, ColorType};
 
 const TEST_SEED: &str = "foobar";
+const MAX_LOCAL_ERROR: f64 = 0.3;
+const MAX_ERROR: f64 = 1.0;
+
+/// Calculates a pixel-level difference between two colored pixels.
+///
+/// Assumes the background is black and returns a value between 0 and 1.
+fn color_diff(mut a: Rgba, mut b: Rgba) -> f64 {
+    // Assume the background is black.
+    a.red *= a.alpha;
+    a.green *= a.alpha;
+    a.blue *= a.alpha;
+
+    b.red *= b.alpha;
+    b.green *= b.alpha;
+    b.blue *= b.alpha;
+
+    let a = Hsva::from(&a);
+    let b = Hsva::from(&b);
+
+    let mut hue_diff = (a.hue - b.hue).abs();
+    // Hue wraps around so the maximum error can only ever be 3.0
+    if hue_diff > 3.0 {
+        hue_diff = 6.0 - hue_diff;
+    }
+
+    (hue_diff / 3.0 + (a.value - b.value).abs() + (a.saturation - b.saturation).abs()) / 3.0
+}
 
 fn do_test(name: &str) {
     let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -18,7 +45,7 @@ fn do_test(name: &str) {
         .unwrap()
         .remove(0);
 
-    let data = render(
+    let generated_image = render(
         genome,
         RenderOptions {
             isaac_seed: Some(TEST_SEED.to_string()),
@@ -32,30 +59,32 @@ fn do_test(name: &str) {
 
     let decoder = png::Decoder::new(File::open(image).unwrap());
     let mut reader = decoder.read_info().unwrap();
-    let mut buf = vec![0; reader.output_buffer_size()];
-    let info = reader.next_frame(&mut buf).unwrap();
+    let mut expected_image = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut expected_image).unwrap();
 
     assert_eq!(info.color_type, ColorType::Rgba);
     assert_eq!(info.bit_depth, BitDepth::Eight);
 
-    let bytes = &buf[..info.buffer_size()];
-    assert_eq!(bytes.len(), data.len());
+    assert_eq!(generated_image.len(), info.buffer_size());
 
-    let mut diff_sum: u64 = 0;
-    for index in 0..bytes.len() {
-        let diff = if data[index] > bytes[index] {
-            data[index] - bytes[index]
-        } else {
-            bytes[index] - data[index]
-        };
+    let mut diff_sum: f64 = 0.0;
+    let mut max_diff: f64 = 0.0;
+    for index in (0..generated_image.len()).step_by(4) {
+        let diff = color_diff(
+            Rgba::try_from(&generated_image[index..index + 4]).unwrap(),
+            Rgba::try_from(&expected_image[index..index + 4]).unwrap(),
+        );
 
-        diff_sum += diff as u64;
+        if diff > max_diff {
+            max_diff = diff;
+        }
+        diff_sum += diff;
     }
 
-    if diff_sum > 10 {
+    if diff_sum > MAX_ERROR || max_diff > MAX_LOCAL_ERROR {
         panic!(
-            "Total image difference ({}) surpassed the limit ({}).",
-            diff_sum, 10
+            "Generated image differed by too much ({:.4} pixel difference, {:.4} total difference).",
+            max_diff, diff_sum
         );
     }
 }

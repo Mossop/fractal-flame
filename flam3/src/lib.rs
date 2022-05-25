@@ -1,141 +1,18 @@
 pub mod file;
 pub mod render;
-mod utils;
+mod types;
+pub(crate) mod utils;
 pub mod variations;
 
-use std::{
-    cmp::Ordering,
-    f64::consts::PI,
-    fmt::Display,
-    ops::{Index, IndexMut},
-    str::FromStr,
-};
+use std::{cmp::Ordering, f64::consts::PI, ops::Index};
 
 use educe::Educe;
 pub use file::flam3::{flam3_from_reader, flam3_to_writer};
 pub use render::{render, RenderOptions};
-use utils::PanicCast;
+pub use types::{Hsva, Rgba};
+use utils::{parse, try_map, PanicCast};
 use uuid::Uuid;
 use variations::Var;
-
-fn try_map<T, C, F, R>(items: C, mapper: F) -> Result<Vec<R>, String>
-where
-    C: IntoIterator<Item = T>,
-    F: Fn(T) -> Result<R, String>,
-{
-    let mut result = Vec::new();
-
-    for item in items {
-        result.push(mapper(item)?);
-    }
-
-    Ok(result)
-}
-
-fn parse<T>(val: &str) -> Result<T, String>
-where
-    T: FromStr,
-    T::Err: Display,
-{
-    T::from_str(val).map_err(|e| format!("Unable to parse: {}", e))
-}
-
-fn color_from_str(str: &str) -> Result<f64, String> {
-    let byte = f64::from_str(str)
-        .map_err(|e| format!("Could not convert value '{}' to color: {}", str, e))?;
-    Ok(fastdiv!(byte, 255.0))
-}
-
-fn color_to_str(color: f64) -> String {
-    format!("{:.0}", color * 255.0)
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Rgba {
-    pub red: f64,
-    pub green: f64,
-    pub blue: f64,
-    pub alpha: f64,
-}
-
-impl Default for Rgba {
-    fn default() -> Self {
-        Self {
-            red: 0.0,
-            green: 0.0,
-            blue: 0.0,
-            alpha: 1.0,
-        }
-    }
-}
-
-impl Index<usize> for Rgba {
-    type Output = f64;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        match index {
-            0 => &self.red,
-            1 => &self.green,
-            2 => &self.blue,
-            3 => &self.alpha,
-            _ => panic!("Out of index error"),
-        }
-    }
-}
-
-impl IndexMut<usize> for Rgba {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        match index {
-            0 => &mut self.red,
-            1 => &mut self.green,
-            2 => &mut self.blue,
-            3 => &mut self.alpha,
-            _ => panic!("Out of index error"),
-        }
-    }
-}
-
-impl Rgba {
-    pub(crate) fn from_str_list(list: &str) -> Result<Self, String> {
-        let values = try_map(list.split(' '), color_from_str)?;
-
-        if values.len() < 3 || values.len() > 4 {
-            return Err(format!("Unexpected number of color values: '{}'", list));
-        }
-
-        let alpha: f64 = *values.get(3).unwrap_or(&1.0);
-
-        Ok(Rgba {
-            red: values[0],
-            green: values[1],
-            blue: values[2],
-            alpha,
-        })
-    }
-
-    pub fn has_opacity(&self) -> bool {
-        self.alpha < 1.0
-    }
-
-    pub(crate) fn to_str_list(&self) -> String {
-        if self.has_opacity() {
-            format!(
-                "{} {} {} {}",
-                color_to_str(self.red),
-                color_to_str(self.green),
-                color_to_str(self.blue),
-                color_to_str(self.alpha),
-            )
-        } else {
-            format!(
-                "{} {} {}",
-                color_to_str(self.red),
-                color_to_str(self.green),
-                color_to_str(self.blue),
-            )
-        }
-    }
-}
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Dimension {

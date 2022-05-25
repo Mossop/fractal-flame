@@ -34,14 +34,11 @@ jobs:
       - name: Install grcov
         run: cargo install grcov
 
-      - name: Build
-        run: cargo build --release
-        env:
-          RUSTFLAGS: -Cinstrument-coverage
-          LLVM_PROFILE_FILE: flam3-%p-%m.profraw
+      - name: Check
+        run: cargo check
 
       - name: Run tests
-        run: cargo test --release
+        run: cargo test
         continue-on-error: true
         env:
           RUSTFLAGS: -Cinstrument-coverage

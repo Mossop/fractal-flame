@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 
 use crate::{
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
+    types::Hsva,
     utils::PanicCast,
     Rgba,
 };
@@ -15,71 +16,6 @@ use super::{
 
 const WHITE_LEVEL: u32 = 255;
 const PREFILTER_WHITE: u32 = 255;
-
-/* rgb 0 - 1,
-h 0 - 6, s 0 - 1, v 0 - 1 */
-fn rgb2hsv(rgb: [f64; 3]) -> [f64; 3] {
-    let [rd, gd, bd] = rgb;
-
-    /* compute maximum of rd,gd,bd */
-    let max = rd.max(bd).max(gd);
-
-    /* compute minimum of rd,gd,bd */
-    let min = rd.min(gd).min(bd);
-
-    let del = max - min;
-    let v = max;
-    let s = if max != 0.0 { del / max } else { 0.0 };
-
-    let mut h = 0.0;
-    if s != 0.0 {
-        let rc = (max - rd) / del;
-        let gc = (max - gd) / del;
-        let bc = (max - bd) / del;
-
-        h = if rd == max {
-            bc - gc
-        } else if gd == max {
-            2.0 + rc - bc
-        } else {
-            4.0 + gc - rc
-        };
-
-        if h < 0.0 {
-            h += 6.0
-        };
-    }
-
-    [h, s, v]
-}
-
-/* h 0 - 6, s 0 - 1, v 0 - 1
-rgb 0 - 1 */
-fn hsv2rgb(hsv: [f64; 3]) -> [f64; 3] {
-    let [mut h, s, v] = hsv;
-
-    while h >= 6.0 {
-        h -= 6.0;
-    }
-    while h < 0.0 {
-        h += 6.0;
-    }
-    let j = h.floor();
-    let f = h - j;
-    let p = v * (1.0 - s);
-    let q = v * (1.0 - (s * f));
-    let t = v * (1.0 - (s * (1.0 - f)));
-
-    match j.u32() {
-        0 => [v, t, p],
-        1 => [q, v, p],
-        2 => [p, v, t],
-        3 => [p, q, v],
-        4 => [t, p, v],
-        5 => [v, p, q],
-        _ => [v, t, p],
-    }
-}
 
 fn flam3_calc_alpha(density: f64, gamma: f64, linrange: f64) -> f64 {
     let dnorm = density;
@@ -127,9 +63,9 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
         }
 
         /* Reduce saturation by the lsratio */
-        let mut newhsv = rgb2hsv(newrgb);
-        newhsv[1] *= lsratio;
-        newrgb = hsv2rgb(newhsv);
+        let mut newhsv = Hsva::from(&Rgba::from(&newrgb));
+        newhsv.saturation *= lsratio;
+        newrgb = Rgba::from(&newhsv).into();
 
         for rgbi in newrgb.iter_mut() {
             *rgbi *= 255.0;
