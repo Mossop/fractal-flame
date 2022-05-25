@@ -41,7 +41,7 @@ fn do_test(name: &str) {
     let bytes = &buf[..info.buffer_size()];
     assert_eq!(bytes.len(), data.len());
 
-    let mut diff_sum = 0;
+    let mut diff_sum: u64 = 0;
     for index in 0..bytes.len() {
         let diff = if data[index] > bytes[index] {
             data[index] - bytes[index]
@@ -49,7 +49,7 @@ fn do_test(name: &str) {
             bytes[index] - data[index]
         };
 
-        diff_sum += diff;
+        diff_sum += diff as u64;
     }
 
     if diff_sum > 10 {
