@@ -1,4 +1,5 @@
 pub mod file;
+pub(crate) mod math;
 pub mod render;
 pub(crate) mod utils;
 pub mod variations;
@@ -331,8 +332,8 @@ fn compare_xforms(a: &Transform, b: &Transform) -> Ordering {
         if bd < 0.0 {
             return Ordering::Greater;
         }
-        ad = a.coefficients[0][0].atan2(a.coefficients[0][1]);
-        bd = b.coefficients[0][0].atan2(b.coefficients[0][1]);
+        ad = atan2!(a.coefficients[0][0], a.coefficients[0][1]);
+        bd = atan2!(b.coefficients[0][0], b.coefficients[0][1]);
     }
 
     if ad < bd {
@@ -369,8 +370,8 @@ impl Genome {
         let a = 2.0 * PI / kind.f64();
 
         for k in 1..kind {
-            let x = round6((k.f64() * a).cos());
-            let y = round6((k.f64() * a).sin());
+            let x = round6(cos!(k.f64() * a));
+            let y = round6(sin!(k.f64() * a));
 
             new_transforms.push(Transform {
                 density: 1.0,

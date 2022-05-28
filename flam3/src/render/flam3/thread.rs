@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use palette::{Pixel, Srgba};
 use uuid::Uuid;
 
-use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
+use crate::{
+    ln, pow, render::flam3::filters::DE_THRESH, sqr, utils::PanicCast, Genome, PaletteMode,
+    Transform,
+};
 
 use super::{
     rng::Flam3Rng,
@@ -220,7 +223,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
     let oversample = dthp.oversample;
     let ss = (oversample.f64() / 2.0).floor().i32();
     let scf = (oversample & 1) == 0;
-    let scfact = (oversample.f64() / (oversample.f64() + 1.0)).powf(2.0);
+    let scfact = sqr!(oversample.f64() / (oversample.f64() + 1.0));
     let wid = dthp.width;
     let hig = dthp.height;
     let str = (oversample - 1) + dthp.start_row;
@@ -264,7 +267,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
             } else if f_select <= DE_THRESH.f64() {
                 f_select.ceil().u32() - 1
             } else {
-                DE_THRESH + (f_select - DE_THRESH.f64()).powf(dthp.curve).floor().u32()
+                DE_THRESH + pow!(f_select - DE_THRESH.f64(), dthp.curve).floor().u32()
             };
 
             /* If the filter selected below the min specified clamp it to the min */
@@ -293,7 +296,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
                     c[3] = b[0][3].f64();
 
                     let ls = dthp.de.filter_coefs[f_coef_idx]
-                        * (dthp.k1 * (1.0 + c[3] * dthp.k2).ln())
+                        * (dthp.k1 * ln!(1.0 + c[3] * dthp.k2))
                         / c[3];
 
                     c[0] *= ls;

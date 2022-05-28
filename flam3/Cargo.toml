@@ -22,9 +22,11 @@ uuid = { version = "^1.0.0", features = ["v4"] }
 lazy_static = "^1.4.0"
 image = "^0.24.2"
 palette = "^0.6.0"
+libm = "^0.2.2"
 
 [features]
 fastmath = []
+libm = []
 
 [dev-dependencies]
 image-compare = "^0.2.2"

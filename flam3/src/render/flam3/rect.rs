@@ -3,7 +3,9 @@ use std::f64::consts::PI;
 use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
 use crate::{
+    cos, ln, pow,
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
+    sin,
     utils::PanicCast,
 };
 
@@ -19,14 +21,14 @@ const PREFILTER_WHITE: u32 = 255;
 
 fn flam3_calc_alpha(density: f64, gamma: f64, linrange: f64) -> f64 {
     let dnorm = density;
-    let funcval = linrange.powf(gamma);
+    let funcval = pow!(linrange, gamma);
 
     if dnorm > 0.0 {
         if dnorm < linrange {
             let frac = dnorm / linrange;
-            (1.0 - frac) * dnorm * (funcval / linrange) + frac * dnorm.powf(gamma)
+            (1.0 - frac) * dnorm * (funcval / linrange) + frac * pow!(dnorm, gamma)
         } else {
-            dnorm.powf(gamma)
+            pow!(dnorm, gamma)
         }
     } else {
         0.0
@@ -55,7 +57,7 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
     /* modify the color to prevent hue shift                                */
     if maxa > 255.0 && highpow >= 0.0 {
         let newls = 255.0 / maxc;
-        let lsratio = (newls / ls).powf(highpow);
+        let lsratio = pow!(newls / ls, highpow);
 
         /* Calculate the max-value color (ranged 0 - 1) */
         for rgbi in 0..3 {
@@ -250,7 +252,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 return Err("Sample density (quality) must be greater than zero".to_string());
             }
 
-            let scale = 2.0_f64.powf(cp.zoom);
+            let scale = pow!(2.0_f64, cp.zoom);
             sample_density = cp.sample_density * scale * scale;
 
             ppux = cp.pixels_per_unit * scale;
@@ -278,8 +280,8 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             fic.size[0] = 1.0 / (fic.bounds[2] - fic.bounds[0]);
             fic.size[1] = 1.0 / (fic.bounds[3] - fic.bounds[1]);
 
-            let rot_x = (cp.rotate * 2.0 * PI / 360.0).cos();
-            let rot_y = -(cp.rotate * 2.0 * PI / 360.0).sin();
+            let rot_x = cos!(cp.rotate * 2.0 * PI / 360.0);
+            let rot_y = -sin!(cp.rotate * 2.0 * PI / 360.0);
             fic.rot = [
                 [rot_x, -rot_y],
                 [rot_y, rot_x],
@@ -366,7 +368,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                         continue;
                     }
 
-                    let ls = (k1 * (1.0 + c[3] * k2).ln()) / c[3];
+                    let ls = (k1 * ln!(1.0 + c[3] * k2)) / c[3];
                     c[0] *= ls;
                     c[1] *= ls;
                     c[2] *= ls;
@@ -468,7 +470,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 for rgbi in 0..3 {
                     let mut a = newrgb[rgbi];
                     let t_val: f64 = t[rgbi];
-                    a += (1.0 - vibrancy) * 256.0 * (t_val / PREFILTER_WHITE.f64()).powf(g);
+                    a += (1.0 - vibrancy) * 256.0 * pow!(t_val / PREFILTER_WHITE.f64(), g);
                     if frame.channels <= 3 || !frame.transparency {
                         a += (1.0 - alpha) * bg_color[rgbi];
                     } else if alpha > 0.0 {
@@ -539,7 +541,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 let bg_color = background.as_raw::<[f64]>();
                 for rgbi in 0..3 {
                     let mut a = newrgb[rgbi];
-                    a += (1.0 - vibrancy) * 256.0 * (t[rgbi] / PREFILTER_WHITE.f64()).powf(g);
+                    a += (1.0 - vibrancy) * 256.0 * pow!(t[rgbi] / PREFILTER_WHITE.f64(), g);
                     if frame.channels <= 3 || !frame.transparency {
                         a += (1.0 - alpha) * bg_color[rgbi];
                     } else if alpha > 0.0 {

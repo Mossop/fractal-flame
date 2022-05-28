@@ -1,6 +1,8 @@
 use std::f64::consts::PI;
 
-use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilter};
+use crate::{
+    cos, exp, fastdiv, pow, sin, sqr, sqrt, utils::PanicCast, SpatialFilter, TemporalFilter,
+};
 
 use super::{Field, Flam3DeHelper, Flam3Frame};
 
@@ -34,7 +36,7 @@ fn flam3_hermite_filter(mut t: f64) -> f64 {
     }
 
     if t < 1.0 {
-        (2.0 * t - 3.0) * t * t + 1.0
+        (2.0 * t - 3.0) * sqr!(t) + 1.0
     } else {
         0.0
     }
@@ -67,10 +69,10 @@ fn flam3_bell_filter(mut t: f64) -> f64 {
     }
 
     if t < 0.5 {
-        0.75 - (t * t)
+        0.75 - sqr!(t)
     } else if t < 1.5 {
         t -= 1.5;
-        0.5 * (t * t)
+        0.5 * sqr!(t)
     } else {
         0.0
     }
@@ -83,7 +85,7 @@ fn flam3_b_spline_filter(mut t: f64) -> f64 {
     }
 
     if t < 1.0 {
-        let tt = t * t;
+        let tt = sqr!(t);
         (0.5 * tt * t) - tt + (2.0 / 3.0)
     } else if t < 2.0 {
         t = 2.0 - t;
@@ -96,14 +98,14 @@ fn flam3_b_spline_filter(mut t: f64) -> f64 {
 fn flam3_sinc(mut x: f64) -> f64 {
     x *= PI;
     if x != 0.0 {
-        x.sin() / x
+        sin!(x) / x
     } else {
         1.0
     }
 }
 
 fn flam3_blackman_filter(x: f64) -> f64 {
-    0.42 + 0.5 * (PI * x).cos() + 0.08 * (2.0 * PI * x).cos()
+    0.42 + 0.5 * cos!(PI * x) + 0.08 * cos!(2.0 * PI * x)
 }
 
 fn flam3_catrom_filter(x: f64) -> f64 {
@@ -112,9 +114,9 @@ fn flam3_catrom_filter(x: f64) -> f64 {
     } else if x < -1.0 {
         0.5 * (4.0 + x * (8.0 + x * (5.0 + x)))
     } else if x < 0.0 {
-        0.5 * (2.0 + x * x * (-5.0 - 3.0 * x))
+        0.5 * (2.0 + sqr!(x) * (-5.0 - 3.0 * x))
     } else if x < 1.0 {
-        0.5 * (2.0 + x * x * (-5.0 + 3.0 * x))
+        0.5 * (2.0 + sqr!(x) * (-5.0 + 3.0 * x))
     } else if x < 2.0 {
         0.5 * (4.0 + x * (-8.0 + x * (5.0 - x)))
     } else {
@@ -123,7 +125,7 @@ fn flam3_catrom_filter(x: f64) -> f64 {
 }
 
 fn flam3_mitchell_filter(mut t: f64) -> f64 {
-    let tt = t * t;
+    let tt = sqr!(t);
     if t < 0.0 {
         t = -t;
     }
@@ -145,11 +147,11 @@ fn flam3_mitchell_filter(mut t: f64) -> f64 {
 }
 
 fn flam3_hanning_filter(x: f64) -> f64 {
-    0.5 + 0.5 * (PI * x).cos()
+    0.5 + 0.5 * cos!(PI * x)
 }
 
 fn flam3_hamming_filter(x: f64) -> f64 {
-    0.54 + 0.46 * (PI * x).cos()
+    0.54 + 0.46 * cos!(PI * x)
 }
 
 fn flam3_lanczos3_filter(mut t: f64) -> f64 {
@@ -177,7 +179,7 @@ fn flam3_lanczos2_filter(mut t: f64) -> f64 {
 }
 
 fn flam3_gaussian_filter(x: f64) -> f64 {
-    ((-2.0 * x * x).exp()) * (2.0 / PI).sqrt()
+    (exp!(-2.0 * sqr!(x))) * sqrt!(2.0 / PI)
 }
 
 fn flam3_quadratic_filter(x: f64) -> f64 {
@@ -186,7 +188,7 @@ fn flam3_quadratic_filter(x: f64) -> f64 {
     } else if x < -0.5 {
         0.5 * (x + 1.5) * (x + 1.5)
     } else if x < 0.5 {
-        0.75 - x * x
+        0.75 - sqr!(x)
     } else if x < 1.5 {
         0.5 * (x - 1.5) * (x - 1.5)
     } else {
@@ -319,7 +321,7 @@ pub fn flam3_create_temporal_filter(
                 };
 
                 /* Scale the color based on these values */
-                *filt = slpx.powf(filter_exp.abs());
+                *filt = pow!(slpx, filter_exp.abs());
 
                 /* Keep the max */
                 if *filt > maxfilt {
@@ -390,7 +392,7 @@ pub(super) fn flam3_create_de_filters(
     /*                                                                       */
     /*    num filters = (de_max_width / de_min_width)^(1/estimator_curve)    */
     /*                                                                       */
-    let num_de_filters_d = (comp_max_radius / comp_min_radius).powf(1.0 / curve);
+    let num_de_filters_d = pow!(comp_max_radius / comp_min_radius, 1.0 / curve);
     if num_de_filters_d > 1e7 {
         return Err(format!(
             "Too many filters required in this configuration ({})",
@@ -402,8 +404,9 @@ pub(super) fn flam3_create_de_filters(
     /* Condense the smaller kernels to save space */
     let de_max_ind;
     if num_de_filters > keep_thresh {
-        de_max_ind = DE_THRESH + (num_de_filters - DE_THRESH).f64().powf(curve).ceil().u32() + 1;
-        de.max_filtered_counts = (de_max_ind - DE_THRESH).f64().powf(1.0 / curve).u32() + DE_THRESH;
+        de_max_ind = DE_THRESH + pow!((num_de_filters - DE_THRESH).f64(), curve).ceil().u32() + 1;
+        de.max_filtered_counts =
+            pow!((de_max_ind - DE_THRESH).f64(), 1.0 / curve).u32() + DE_THRESH;
     } else {
         de_max_ind = num_de_filters;
         de.max_filtered_counts = de_max_ind;
@@ -425,10 +428,10 @@ pub(super) fn flam3_create_de_filters(
 
         /* Calculate the filter width for this number of hits in a bin */
         let mut de_filt_h = if filtloop < keep_thresh {
-            comp_max_radius / (filtloop + 1).f64().powf(curve)
+            comp_max_radius / pow!((filtloop + 1).f64(), curve)
         } else {
-            let adjloop = (filtloop - keep_thresh).f64().powf(1.0 / curve) + keep_thresh.f64();
-            fastdiv!(comp_max_radius, (adjloop + 1.0).powf(curve))
+            let adjloop = pow!((filtloop - keep_thresh).f64(), 1.0 / curve) + keep_thresh.f64();
+            fastdiv!(comp_max_radius, pow!(adjloop + 1.0, curve))
         };
 
         /* Once we've reached the min radius, don't populate any more */
@@ -442,7 +445,7 @@ pub(super) fn flam3_create_de_filters(
         /* Calculate norm of kernel separately (easier) */
         for dej in -de_half_size..=de_half_size {
             for dek in -de_half_size..=de_half_size {
-                let de_filt_d = (dej * dej + dek * dek).f64().sqrt() / de_filt_h;
+                let de_filt_d = sqrt!((dej * dej + dek * dek).f64()) / de_filt_h;
 
                 /* Only populate the coefs within this radius */
                 if de_filt_d <= 1.0 {
@@ -463,7 +466,7 @@ pub(super) fn flam3_create_de_filters(
         /* Calculate the unique entries of the kernel */
         for dej in 0..=de_half_size {
             for dek in 0..=dej {
-                let de_filt_d = (dej * dej + dek * dek).f64().sqrt() / de_filt_h;
+                let de_filt_d = sqrt!((dej * dej + dek * dek).f64()) / de_filt_h;
 
                 /* Only populate the coefs within this radius */
                 if de_filt_d > 1.0 {

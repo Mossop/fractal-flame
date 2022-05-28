@@ -9,7 +9,7 @@ use std::fmt::Display;
 use image::RgbaImage;
 use rand::RngCore;
 
-use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
+use crate::{ln, pow, utils::PanicCast, Affine, Genome, Palette, Transform};
 
 use self::{rect::render_rectangle, rng::Flam3Rng};
 
@@ -22,7 +22,7 @@ fn adjust_percentage(perc: f64) -> f64 {
     if perc == 0.0 {
         0.0
     } else {
-        10.0_f64.powf(-(1.0 / perc).ln() / 2.0_f64.ln())
+        pow!(10.0_f64, -ln!(1.0 / perc) / ln!(2.0_f64))
     }
 }
 
@@ -249,7 +249,7 @@ fn render_internal<Ops: RenderOps>(
     let full_height = genome.size.height;
     let strip_height = (genome.size.height.f64() / num_strips.f64()).ceil().u32();
     let center_y = genome.center.y;
-    let zoom_scale = 2.0_f64.powf(genome.zoom);
+    let zoom_scale = pow!(2.0_f64, genome.zoom);
     let center_base = center_y
         - ((num_strips - 1).f64() * strip_height.f64())
             / (2.0 * genome.pixels_per_unit * zoom_scale);
