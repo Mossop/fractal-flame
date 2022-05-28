@@ -4,6 +4,7 @@ use std::{
     str::FromStr,
 };
 
+use palette::{Pixel, Srgb, Srgba, WithAlpha};
 use xml::{
     attribute::OwnedAttribute,
     reader::{self, EventReader, ParserConfig},
@@ -12,12 +13,119 @@ use xml::{
 
 use crate::{
     parse,
+    utils::{color_from_str, color_to_str, try_map},
     variations::{self, Var},
-    Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette, Rgba,
-    TemporalFilter, Transform,
+    Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette, TemporalFilter,
+    Transform,
 };
 
 const VARIATION_COUNT: usize = 99;
+
+trait XmlAttribute: Sized {
+    fn to_attribute(&self) -> String;
+
+    fn from_attribute(attr: &str) -> Result<Self, String>;
+}
+
+impl XmlAttribute for Affine {
+    fn from_attribute(list: &str) -> Result<Self, String> {
+        let values: Vec<f64> = try_map(list.split(' '), parse)?;
+        if values.len() != 6 {
+            return Err("Unexpected number of coefficients".to_string());
+        }
+
+        let mut affine = Self::default();
+
+        for i in 0..3 {
+            for k in 0..2 {
+                affine.coefficients[i][k] = values[i * 2 + k];
+            }
+        }
+
+        Ok(affine)
+    }
+
+    fn to_attribute(&self) -> String {
+        format!(
+            "{} {} {} {} {} {}",
+            self.coefficients[0][0],
+            self.coefficients[0][1],
+            self.coefficients[1][0],
+            self.coefficients[1][1],
+            self.coefficients[2][0],
+            self.coefficients[2][1],
+        )
+    }
+}
+
+impl XmlAttribute for Dimension {
+    fn from_attribute(list: &str) -> Result<Self, String> {
+        let values = try_map(list.split(' '), parse)?;
+
+        if values.len() != 2 {
+            return Err(format!("Unexpected number of dimensions: '{}'", list));
+        }
+
+        Ok(Dimension {
+            width: values[0],
+            height: values[1],
+        })
+    }
+
+    fn to_attribute(&self) -> String {
+        format!("{} {}", self.width, self.height)
+    }
+}
+
+impl XmlAttribute for Coordinate {
+    fn from_attribute(list: &str) -> Result<Self, String> {
+        let values = try_map(list.split(' '), parse)?;
+
+        if values.len() != 2 {
+            return Err(format!("Unexpected number of dimensions: '{}'", list));
+        }
+
+        Ok(Coordinate {
+            x: values[0],
+            y: values[1],
+        })
+    }
+
+    fn to_attribute(&self) -> String {
+        format!("{} {}", self.x, self.y)
+    }
+}
+
+impl XmlAttribute for Srgba<f64> {
+    fn from_attribute(list: &str) -> Result<Self, String> {
+        let components = try_map(list.split(' '), color_from_str)?;
+
+        match components.len() {
+            3 => Ok(Srgb::<f64>::from_raw(&components[..]).with_alpha(1.0)),
+            4 => Ok(*Srgba::<f64>::from_raw(&components[..])),
+            _ => Err("Unexpected number of color components.".to_string()),
+        }
+    }
+
+    fn to_attribute(&self) -> String {
+        if self.alpha < 1.0 {
+            format!(
+                "{} {} {} {}",
+                color_to_str(self.red),
+                color_to_str(self.green),
+                color_to_str(self.blue),
+                color_to_str(self.alpha),
+            )
+        } else {
+            format!(
+                "{} {} {}",
+                color_to_str(self.red),
+                color_to_str(self.green),
+                color_to_str(self.blue),
+            )
+        }
+    }
+}
 
 macro_rules! read_xml_event {
     ($parser:ident) => {
@@ -465,13 +573,7 @@ fn parse_palette_data(str: &str, bytes: usize, palette: &mut Palette) -> Result<
             1.0
         };
 
-        *entry = Rgba {
-            red: r,
-            green: g,
-            blue: b,
-            alpha: a,
-        };
-
+        *entry = Srgba::<f64>::from_components((r, g, b, a));
         pos = skip_whitespace(&chars, pos + bytes * 2);
     }
 
@@ -518,10 +620,10 @@ fn serialize_colors<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     for (index, color) in genome.palette.iter().enumerate() {
         let mut attrs: Vec<(String, String)> = vec![("index".to_string(), index.to_string())];
 
-        if color.has_opacity() {
-            attrs.push(("rgba".to_string(), color.to_str_list()));
+        if color.alpha < 1.0 {
+            attrs.push(("rgba".to_string(), color.to_attribute()));
         } else {
-            attrs.push(("rgb".to_string(), color.to_str_list()));
+            attrs.push(("rgb".to_string(), color.to_attribute()));
         }
 
         write_start_element(writer, "color", attrs)?;
@@ -549,7 +651,7 @@ fn parse_color<R: Read>(
         .get("rgba")
         .or_else(|| attrs.get("rgb"))
         .ok_or_else(|| "Missing color value".to_string())
-        .and_then(|s| Rgba::from_str_list(s))?;
+        .and_then(|s| Srgba::from_attribute(s))?;
 
     genome.palette[index] = color;
 
@@ -602,9 +704,10 @@ fn serialize_transform<W: Write>(
     }
 
     writep!(attrs, &transform.coefficients, "coefs", |a: &Affine| a
-        .to_str_list());
+        .to_attribute());
 
-    writep!(attrs, &transform.post, "post", |a: &Affine| a.to_str_list());
+    writep!(attrs, &transform.post, "post", |a: &Affine| a
+        .to_attribute());
 
     writep!(attrs, transform.opacity, "opacity");
 
@@ -639,11 +742,11 @@ fn parse_transform<R: Read>(
     }
 
     if let Some(coefs) = attrs.remove("coefs") {
-        transform.coefficients = Affine::from_str_list(&coefs)?;
+        transform.coefficients = Affine::from_attribute(&coefs)?;
     }
 
     if let Some(post) = attrs.remove("post") {
-        transform.post = Affine::from_str_list(&post)?;
+        transform.post = Affine::from_attribute(&post)?;
     }
 
     setp!(attrs, transform.density, "weight");
@@ -678,8 +781,8 @@ fn serialize_genome<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     }
 
     writep!(attrs, genome.time, "time");
-    writep!(attrs, &genome.size, "size", Dimension::to_str_list);
-    writep!(attrs, &genome.center, "center", Coordinate::to_str_list);
+    writep!(attrs, &genome.size, "size", XmlAttribute::to_attribute);
+    writep!(attrs, &genome.center, "center", XmlAttribute::to_attribute);
     writep!(attrs, genome.pixels_per_unit, "scale");
 
     if genome.zoom > 0.0 {
@@ -697,8 +800,12 @@ fn serialize_genome<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     writep!(attrs, genome.sample_density, "quality");
     writep!(attrs, genome.passes, "passes");
     writep!(attrs, genome.num_temporal_samples, "temporal_samples");
-    writep!(attrs, &genome.background, "background", |c: &Rgba| c
-        .to_str_list());
+    writep!(
+        attrs,
+        &genome.background,
+        "background",
+        XmlAttribute::to_attribute
+    );
     writep!(attrs, genome.brightness, "brightness");
     writep!(attrs, genome.gamma, "gamma");
     writep!(attrs, genome.highlight_power, "highlight_power");
@@ -754,8 +861,8 @@ fn parse_genome<R: Read>(
     setp!(attrs, genome.interpolation_type, "interpolation_space");
     setp!(attrs, genome.interpolation_type, "interpolation_type");
     setp!(attrs, genome.palette_index, "palette");
-    setp!(attrs, genome.size, "size", Dimension::from_str_list);
-    setp!(attrs, genome.center, "center", Coordinate::from_str_list);
+    setp!(attrs, genome.size, "size", XmlAttribute::from_attribute);
+    setp!(attrs, genome.center, "center", XmlAttribute::from_attribute);
     setp!(attrs, genome.pixels_per_unit, "scale");
     setp!(attrs, genome.rotate, "rotate");
     setp!(attrs, genome.zoom, "zoom");
@@ -770,9 +877,12 @@ fn parse_genome<R: Read>(
     setp!(attrs, genome.sample_density, "quality");
     setp!(attrs, genome.passes, "passes");
     setp!(attrs, genome.num_temporal_samples, "temporal_samples");
-    setp!(attrs, genome.background, "background", |s| {
-        Rgba::from_str_list(s)
-    });
+    setp!(
+        attrs,
+        genome.background,
+        "background",
+        XmlAttribute::from_attribute
+    );
     setp!(attrs, genome.brightness, "brightness");
     setp!(attrs, genome.gamma, "gamma");
     setp!(attrs, genome.highlight_power, "highlight_power");
@@ -890,7 +1000,9 @@ pub fn flam3_to_writer<W: Write>(genomes: &[Genome], sink: W) -> Result<(), Stri
 
 #[cfg(test)]
 mod tests {
-    use crate::Rgba;
+    use palette::Srgba;
+
+    use crate::file::flam3::XmlAttribute;
 
     use super::parse_palette_data;
 
@@ -930,9 +1042,9 @@ mod tests {
       5863915168914d6f914a71904d778e5276915a7b9465849c
       778ea38ba0ac9dacb5a9b3b9adb5baadb2b6aeafb6b3aab8
 ";
-        let mut palette = vec![Rgba::default(); 256];
+        let mut palette = vec![Srgba::default(); 256];
         parse_palette_data(palette_data, 3, &mut palette).unwrap();
-        let mut i = palette.into_iter().map(|c| c.to_str_list());
+        let mut i = palette.into_iter().map(|c| c.to_attribute());
 
         assert_eq!(i.next().unwrap(), "186 160 182");
         assert_eq!(i.next().unwrap(), "190 133 166");
@@ -1225,9 +1337,9 @@ mod tests {
       e6 024e1 03fe2 04cc8 07aa7 09d89 0ee84 0f7a1 09c
       b7 08ccb 078db 05ecb7041d0895fd2a07dd6b194d9bea9
 ";
-        let mut palette = vec![Rgba::default(); 256];
+        let mut palette = vec![Srgba::default(); 256];
         parse_palette_data(palette_data, 3, &mut palette).unwrap();
-        let mut i = palette.into_iter().map(|c| c.to_str_list());
+        let mut i = palette.into_iter().map(|c| c.to_attribute());
 
         assert_eq!(i.next().unwrap(), "218 193 173");
         assert_eq!(i.next().unwrap(), "217 187 163");

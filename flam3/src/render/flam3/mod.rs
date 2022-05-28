@@ -6,6 +6,7 @@ mod variations;
 
 use std::fmt::Display;
 
+use image::RgbaImage;
 use rand::RngCore;
 
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
@@ -202,7 +203,7 @@ struct Flam3DeThreadHelper {
     end_row: i32,
 }
 
-pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<Vec<u8>, String> {
+pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage, String> {
     let rng = if let Some(ref seed) = options.isaac_seed {
         Flam3Rng::from_seed(seed)
     } else {
@@ -220,7 +221,7 @@ fn render_internal<Ops: RenderOps>(
     genome: Genome,
     options: RenderOptions,
     rng: Flam3Rng,
-) -> Result<Vec<u8>, String> {
+) -> Result<RgbaImage, String> {
     let num_strips = options.num_strips.unwrap_or(1);
     let num_threads = options.threads.unwrap_or(1);
     log::trace!(
@@ -293,7 +294,7 @@ fn render_internal<Ops: RenderOps>(
 
     log::trace!("Strips complete");
 
-    Ok(image)
+    Ok(RgbaImage::from_raw(genome.size.width, genome.size.height, image).unwrap())
 }
 
 fn flam3_interpolate(genomes: &[Genome], _time: f64, _stagger: f64) -> Result<Genome, String> {

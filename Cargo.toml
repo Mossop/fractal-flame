@@ -1,5 +1,5 @@
 [workspace]
 members = [
     "flam3",
-    "flam3-render",
+    "flam3-render"
 ]

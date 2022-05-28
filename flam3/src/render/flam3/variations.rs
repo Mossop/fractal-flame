@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_1_PI, FRAC_2_PI, FRAC_PI_2, FRAC_PI_4, PI};
 
 use lazy_static::lazy_static;
 
@@ -12,10 +12,10 @@ use super::{adjust_percentage, rng::Flam3Rng};
 
 const EPS: f64 = 1e-10;
 const M_PI: f64 = PI;
-const M_PI_2: f64 = PI / 2.0;
-const M_1_PI: f64 = 1.0 / PI;
-const M_2_PI: f64 = 2.0 / PI;
-const M_PI_4: f64 = PI / 4.0;
+const M_PI_2: f64 = FRAC_PI_2;
+const M_1_PI: f64 = FRAC_1_PI;
+const M_2_PI: f64 = FRAC_2_PI;
+const M_PI_4: f64 = FRAC_PI_4;
 
 lazy_static! {
     static ref BUTTERFLY_WEIGHT: f64 = 4.0 / (3.0 * M_PI).sqrt();

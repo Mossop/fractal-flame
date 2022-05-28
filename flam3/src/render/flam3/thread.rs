@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
+use palette::{Pixel, Srgba};
 use uuid::Uuid;
 
-use crate::{
-    render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Rgba, Transform,
-};
+use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
 
 use super::{
     rng::Flam3Rng,
@@ -172,12 +171,13 @@ pub(super) fn iter_thread<Ops: RenderOps>(
                         (color_index0.usize(), dbl_index0 - color_index0.f64())
                     };
 
-                    let mut interpcolor = Rgba::default();
+                    let mut interpcolor = [0.0; 4];
+                    let first = ficp.dmap[cindex].as_raw::<[f64]>();
+                    let second = ficp.dmap[cindex + 1].as_raw::<[f64]>();
                     for ci in 0..4 {
-                        interpcolor[ci] = ficp.dmap[cindex][ci] * (1.0 - dbl_frac)
-                            + ficp.dmap[cindex + 1][ci] * dbl_frac;
+                        interpcolor[ci] = first[ci] * (1.0 - dbl_frac) + second[ci] * dbl_frac;
                     }
-                    interpcolor
+                    *Srgba::from_raw(&interpcolor)
                 } else {
                     /* Palette mode step */
                     let cindex = if color_index0 < 0 {
@@ -188,16 +188,16 @@ pub(super) fn iter_thread<Ops: RenderOps>(
                         color_index0.usize()
                     };
 
-                    ficp.dmap[cindex].clone()
+                    ficp.dmap[cindex]
                 };
 
                 Ops::bump_no_overflow(
                     &mut buckets[start],
                     &[
-                        logvis * interpcolor[0],
-                        logvis * interpcolor[1],
-                        logvis * interpcolor[2],
-                        logvis * interpcolor[3],
+                        logvis * interpcolor.red,
+                        logvis * interpcolor.green,
+                        logvis * interpcolor.blue,
+                        logvis * interpcolor.alpha,
                         logvis * 255.0,
                     ],
                 );

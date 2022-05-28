@@ -1,4 +1,5 @@
 use educe::Educe;
+use image::RgbaImage;
 
 use crate::Genome;
 
@@ -44,6 +45,6 @@ impl Default for RenderOptions {
     }
 }
 
-pub fn render(genome: Genome, options: RenderOptions) -> Result<Vec<u8>, String> {
+pub fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage, String> {
     flam3::render(genome, options)
 }

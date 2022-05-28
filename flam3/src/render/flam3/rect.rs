@@ -1,10 +1,10 @@
 use std::f64::consts::PI;
 
+use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
+
 use crate::{
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
-    types::Hsva,
     utils::PanicCast,
-    Rgba,
 };
 
 use super::{
@@ -63,9 +63,9 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
         }
 
         /* Reduce saturation by the lsratio */
-        let mut newhsv = Hsva::from(&Rgba::from(&newrgb));
-        newhsv.saturation *= lsratio;
-        newrgb = Rgba::from(&newhsv).into();
+        let mut hsv = Hsv::<encoding::Srgb, f64>::from_color(*Srgb::<f64>::from_raw(&newrgb));
+        hsv.saturation *= lsratio;
+        newrgb = Srgb::from_color(hsv).into_raw();
 
         for rgbi in newrgb.iter_mut() {
             *rgbi *= 255.0;
@@ -94,7 +94,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     mut buffer: &mut [u8],
     field: Field,
 ) -> Result<(), String> {
-    let mut background = Rgba::default();
+    let mut background = Srgba::default();
     let mut gamma = 0.0;
     let mut vib_gam_n = 0.0;
     let mut vibrancy = 0.0;
@@ -232,14 +232,16 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             //  Interpolate and get a control point
             let cp = flam3_interpolate(&frame.genomes, temporal_sample_time, 0.0)?;
 
-            let dmap: Vec<Rgba> = cp
+            let dmap: Vec<Srgba<f64>> = cp
                 .palette
                 .iter()
-                .map(|color| Rgba {
-                    red: color.red * WHITE_LEVEL.f64() * color_scalar,
-                    green: color.green * WHITE_LEVEL.f64() * color_scalar,
-                    blue: color.blue * WHITE_LEVEL.f64() * color_scalar,
-                    alpha: color.alpha * WHITE_LEVEL.f64() * color_scalar,
+                .map(|color| {
+                    Srgba::<f64>::from_components((
+                        color.red * WHITE_LEVEL.f64() * color_scalar,
+                        color.green * WHITE_LEVEL.f64() * color_scalar,
+                        color.blue * WHITE_LEVEL.f64() * color_scalar,
+                        color.alpha * WHITE_LEVEL.f64() * color_scalar,
+                    ))
                 })
                 .collect();
 
@@ -462,12 +464,13 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 let t = [ac[0].into(), ac[1].into(), ac[2].into()];
                 let newrgb = flam3_calc_newrgb(&t, ls, highpow);
 
+                let bg_color = background.as_raw::<[f64]>();
                 for rgbi in 0..3 {
                     let mut a = newrgb[rgbi];
                     let t_val: f64 = t[rgbi];
                     a += (1.0 - vibrancy) * 256.0 * (t_val / PREFILTER_WHITE.f64()).powf(g);
                     if frame.channels <= 3 || !frame.transparency {
-                        a += (1.0 - alpha) * background[rgbi];
+                        a += (1.0 - alpha) * bg_color[rgbi];
                     } else if alpha > 0.0 {
                         a /= alpha;
                     } else {
@@ -533,11 +536,12 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
                 let newrgb = flam3_calc_newrgb(&[t[0], t[1], t[2]], ls, highpow);
 
+                let bg_color = background.as_raw::<[f64]>();
                 for rgbi in 0..3 {
                     let mut a = newrgb[rgbi];
                     a += (1.0 - vibrancy) * 256.0 * (t[rgbi] / PREFILTER_WHITE.f64()).powf(g);
                     if frame.channels <= 3 || !frame.transparency {
-                        a += (1.0 - alpha) * background[rgbi];
+                        a += (1.0 - alpha) * bg_color[rgbi];
                     } else if alpha > 0.0 {
                         a /= alpha;
                     } else {

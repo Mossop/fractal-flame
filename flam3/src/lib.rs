@@ -1,6 +1,5 @@
 pub mod file;
 pub mod render;
-mod types;
 pub(crate) mod utils;
 pub mod variations;
 
@@ -8,9 +7,9 @@ use std::{cmp::Ordering, f64::consts::PI, ops::Index};
 
 use educe::Educe;
 pub use file::flam3::{flam3_from_reader, flam3_to_writer};
+use palette::Srgba;
 pub use render::{render, RenderOptions};
-pub use types::{Hsva, Rgba};
-use utils::{parse, try_map, PanicCast};
+use utils::{parse, PanicCast};
 use uuid::Uuid;
 use variations::Var;
 
@@ -20,48 +19,10 @@ pub struct Dimension {
     pub height: u32,
 }
 
-impl Dimension {
-    pub(crate) fn from_str_list(list: &str) -> Result<Self, String> {
-        let values = try_map(list.split(' '), parse)?;
-
-        if values.len() != 2 {
-            return Err(format!("Unexpected number of dimensions: '{}'", list));
-        }
-
-        Ok(Dimension {
-            width: values[0],
-            height: values[1],
-        })
-    }
-
-    pub(crate) fn to_str_list(&self) -> String {
-        format!("{} {}", self.width, self.height)
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Coordinate {
     pub x: f64,
     pub y: f64,
-}
-
-impl Coordinate {
-    pub(crate) fn from_str_list(list: &str) -> Result<Self, String> {
-        let values = try_map(list.split(' '), parse)?;
-
-        if values.len() != 2 {
-            return Err(format!("Unexpected number of dimensions: '{}'", list));
-        }
-
-        Ok(Coordinate {
-            x: values[0],
-            y: values[1],
-        })
-    }
-
-    pub(crate) fn to_str_list(&self) -> String {
-        format!("{} {}", self.x, self.y)
-    }
 }
 
 impl From<&[f64; 2]> for Coordinate {
@@ -219,35 +180,6 @@ impl Affine {
             && (self.coefficients[2][0] == 0.0)
             && (self.coefficients[2][1] == 0.0)
     }
-
-    pub(crate) fn from_str_list(list: &str) -> Result<Self, String> {
-        let values: Vec<f64> = try_map(list.split(' '), parse)?;
-        if values.len() != 6 {
-            return Err("Unexpected number of coefficients".to_string());
-        }
-
-        let mut affine = Self::default();
-
-        for i in 0..3 {
-            for k in 0..2 {
-                affine.coefficients[i][k] = values[i * 2 + k];
-            }
-        }
-
-        Ok(affine)
-    }
-
-    pub(crate) fn to_str_list(&self) -> String {
-        format!(
-            "{} {} {} {} {} {}",
-            self.coefficients[0][0],
-            self.coefficients[0][1],
-            self.coefficients[1][0],
-            self.coefficients[1][1],
-            self.coefficients[2][0],
-            self.coefficients[2][1],
-        )
-    }
 }
 
 impl From<[[f64; 2]; 3]> for Affine {
@@ -315,7 +247,7 @@ impl Default for Transform {
     }
 }
 
-pub type Palette = Vec<Rgba>;
+pub type Palette = Vec<Srgba<f64>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Genome {
@@ -346,7 +278,7 @@ pub struct Genome {
     pub sample_density: f64,
     pub passes: u32,
     pub num_temporal_samples: u32,
-    pub background: Rgba,
+    pub background: Srgba<f64>,
     pub brightness: f64,
     pub gamma: f64,
     pub highlight_power: f64,
@@ -505,17 +437,5 @@ impl Default for Genome {
             transforms: Vec::new(),
             final_transform: None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::Coordinate;
-
-    #[test]
-    fn coordinate() {
-        let c = Coordinate::from_str_list("0.353453 -0.235345").unwrap();
-        assert_eq!(c.x, 0.353453);
-        assert_eq!(c.y, -0.235345);
     }
 }

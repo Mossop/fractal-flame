@@ -1,36 +1,11 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
-use flam3::{flam3_from_reader, render, Hsva, RenderOptions, Rgba};
-use png::{BitDepth, ColorType};
+use flam3::{flam3_from_reader, render, RenderOptions};
+use image::{buffer::ConvertBuffer, open, RgbImage};
+use image_compare::rgb_hybrid_compare;
 
 const TEST_SEED: &str = "foobar";
-const MAX_LOCAL_ERROR: f64 = 0.3;
-const MAX_ERROR: f64 = 1.0;
-
-/// Calculates a pixel-level difference between two colored pixels.
-///
-/// Assumes the background is black and returns a value between 0 and 1.
-fn color_diff(mut a: Rgba, mut b: Rgba) -> f64 {
-    // Assume the background is black.
-    a.red *= a.alpha;
-    a.green *= a.alpha;
-    a.blue *= a.alpha;
-
-    b.red *= b.alpha;
-    b.green *= b.alpha;
-    b.blue *= b.alpha;
-
-    let a = Hsva::from(&a);
-    let b = Hsva::from(&b);
-
-    let mut hue_diff = (a.hue - b.hue).abs();
-    // Hue wraps around so the maximum error can only ever be 3.0
-    if hue_diff > 3.0 {
-        hue_diff = 6.0 - hue_diff;
-    }
-
-    (hue_diff / 3.0 + (a.value - b.value).abs() + (a.saturation - b.saturation).abs()) / 3.0
-}
+const MAX_ERROR: f64 = 0.001;
 
 fn do_test(name: &str) {
     let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -45,47 +20,28 @@ fn do_test(name: &str) {
         .unwrap()
         .remove(0);
 
-    let generated_image = render(
+    let generated_image: RgbImage = render(
         genome,
         RenderOptions {
             isaac_seed: Some(TEST_SEED.to_string()),
             ..Default::default()
         },
     )
-    .unwrap();
+    .unwrap()
+    .convert();
 
     let mut image = test_dir.to_owned();
     image.push(format!("{}.png", name));
 
-    let decoder = png::Decoder::new(File::open(image).unwrap());
-    let mut reader = decoder.read_info().unwrap();
-    let mut expected_image = vec![0; reader.output_buffer_size()];
-    let info = reader.next_frame(&mut expected_image).unwrap();
+    let expected_image = open(image).unwrap().into_rgb8();
+    assert_eq!(generated_image.width(), expected_image.width());
+    assert_eq!(generated_image.height(), expected_image.height());
 
-    assert_eq!(info.color_type, ColorType::Rgba);
-    assert_eq!(info.bit_depth, BitDepth::Eight);
+    let diff = rgb_hybrid_compare(&generated_image, &expected_image).unwrap();
+    let score = 1.0 - diff.score;
 
-    assert_eq!(generated_image.len(), info.buffer_size());
-
-    let mut diff_sum: f64 = 0.0;
-    let mut max_diff: f64 = 0.0;
-    for index in (0..generated_image.len()).step_by(4) {
-        let diff = color_diff(
-            Rgba::try_from(&generated_image[index..index + 4]).unwrap(),
-            Rgba::try_from(&expected_image[index..index + 4]).unwrap(),
-        );
-
-        if diff > max_diff {
-            max_diff = diff;
-        }
-        diff_sum += diff;
-    }
-
-    if diff_sum > MAX_ERROR || max_diff > MAX_LOCAL_ERROR {
-        panic!(
-            "Generated image differed by too much ({:.4} pixel difference, {:.4} total difference).",
-            max_diff, diff_sum
-        );
+    if score > MAX_ERROR {
+        panic!("Result differed by {:.6}", score);
     }
 }
 
