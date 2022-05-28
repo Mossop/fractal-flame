@@ -27,5 +27,4 @@ palette = "^0.6.0"
 fastmath = []
 
 [dev-dependencies]
-colordiff = { path = "../../colordiff/colordiff", version = "0.0.1" }
 image-compare = "^0.2.2"
