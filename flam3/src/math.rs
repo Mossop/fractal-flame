@@ -1,110 +1,143 @@
+#[cfg(feature = "libm")]
 macro_rules! sin {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::sin($e)
-        } else {
-            $e.sin()
-        }
+        libm::sin($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! sin {
+    ($e:expr) => {
+        $e.sin()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! sinh {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::sinh($e)
-        } else {
-            $e.sinh()
-        }
+        libm::sinh($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! sinh {
+    ($e:expr) => {
+        $e.sinh()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! cos {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::cos($e)
-        } else {
-            $e.cos()
-        }
+        libm::cos($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! cos {
+    ($e:expr) => {
+        $e.cos()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! acos {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::acos($e)
-        } else {
-            $e.acos()
-        }
+        libm::acos($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! acos {
+    ($e:expr) => {
+        $e.acos()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! cosh {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::cosh($e)
-        } else {
-            $e.cosh()
-        }
+        libm::cosh($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! cosh {
+    ($e:expr) => {
+        $e.cosh()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! tan {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::tan($e)
-        } else {
-            $e.tan()
-        }
+        libm::tan($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! tan {
+    ($e:expr) => {
+        $e.tan()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! atan2 {
     ($a:expr, $b:expr) => {
-        if cfg!(feature = "libm") {
-            libm::atan2($a, $b)
-        } else {
-            $a.atan2($b)
-        }
+        libm::atan2($a, $b)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! atan2 {
+    ($a:expr, $b:expr) => {
+        $a.atan2($b)
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! sincos {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::sincos($e)
-        } else {
-            $e.sin_cos()
-        }
+        libm::sincos($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! sincos {
+    ($e:expr) => {
+        $e.sin_cos()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! sqrt {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::sqrt($e)
-        } else {
-            $e.sqrt()
-        }
+        libm::sqrt($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! sqrt {
+    ($e:expr) => {
+        $e.sqrt()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! exp {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::exp($e)
-        } else {
-            $e.exp()
-        }
+        libm::exp($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! exp {
+    ($e:expr) => {
+        $e.exp()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! pow {
     ($a:expr, $b:expr) => {
-        if cfg!(feature = "libm") {
-            libm::pow($a, $b)
-        } else {
-            $a.powf($b)
-        }
+        libm::pow($a, $b)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! pow {
+    ($a:expr, $b:expr) => {
+        $a.powf($b)
     };
 }
 
@@ -120,23 +153,29 @@ macro_rules! sum_sqr {
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! log10 {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::log10($e)
-        } else {
-            $e.log10()
-        }
+        libm::log10($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! log10 {
+    ($e:expr) => {
+        $e.log10()
     };
 }
 
+#[cfg(feature = "libm")]
 macro_rules! ln {
     ($e:expr) => {
-        if cfg!(feature = "libm") {
-            libm::log($e)
-        } else {
-            $e.ln()
-        }
+        libm::log($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
+macro_rules! ln {
+    ($e:expr) => {
+        $e.ln()
     };
 }
 
