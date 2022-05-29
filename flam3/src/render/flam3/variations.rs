@@ -2,8 +2,10 @@ use std::f64::consts::{FRAC_1_PI, FRAC_2_PI, FRAC_PI_2, FRAC_PI_4, PI};
 
 use lazy_static::lazy_static;
 
+use crate::math::{
+    acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqr, sqrt, sum_sqr, tan,
+};
 use crate::{
-    acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqr, sqrt, tan,
     utils::PanicCast,
     variations::{self, Var, Variation},
     with_var, Affine, Coordinate, Transform,
@@ -111,7 +113,7 @@ impl VariationPrecalculations {
         let dy = transform.coefficients[2][1];
 
         self.waves_dx2 = Some(1.0 / (dx * dx + EPS));
-        self.waves_dy2 = Some(1.0 / (dy * dy + EPS));
+        self.waves_dy2 = Some(1.0 / (sqr!(dy) + EPS));
     }
 
     fn disc2_precalc(&mut self, var: &variations::Disc2) {
@@ -191,7 +193,7 @@ impl<'a> Flam3IterHelper<'a> {
     }
 
     fn sumsq(&mut self) -> f64 {
-        upsert!(self.sumsq, self.tx * self.tx + self.ty * self.ty)
+        upsert!(self.sumsq, sum_sqr!(self.tx, self.ty))
     }
 
     fn sqrt(&mut self) -> f64 {
@@ -653,7 +655,7 @@ impl Flam3Variation for variations::Fan2 {
         _precalc: &mut VariationPrecalculations,
     ) {
         let dy = self.y;
-        let dx = M_PI * (self.x * self.x + EPS);
+        let dx = M_PI * (sqr!(self.x) + EPS);
         let dx2 = 0.5 * dx;
         let mut a = f.atan();
         let r = self.weight * f.sqrt();
@@ -913,7 +915,7 @@ impl Flam3Variation for variations::Curl {
         let re = 1.0 + self.c1 * f.tx + self.c2 * (f.tx * f.tx - f.ty * f.ty);
         let im = self.c1 * f.ty + 2.0 * self.c2 * f.tx * f.ty;
 
-        let r = self.weight / (re * re + im * im);
+        let r = self.weight / sum_sqr!(re, im);
 
         f.p0 += (f.tx * re + f.ty * im) * r;
         f.p1 += (f.ty * re - f.tx * im) * r;
@@ -958,7 +960,7 @@ impl Flam3Variation for variations::Arch {
         let (sinr, cosr) = sincos!(ang);
 
         f.p0 += self.weight * sinr;
-        f.p1 += self.weight * (sinr * sinr) / cosr;
+        f.p1 += self.weight * sqr!(sinr) / cosr;
     }
 }
 
@@ -1074,7 +1076,7 @@ impl Flam3Variation for variations::Twintrian {
         let r = f.rc.isaac_01() * self.weight * f.sqrt();
 
         let (sinr, cosr) = sincos!(r);
-        let mut diff = log10!(sinr * sinr) + cosr;
+        let mut diff = log10!(sqr!(sinr)) + cosr;
 
         if badvalue(diff) {
             diff = -30.0;
@@ -1185,7 +1187,7 @@ impl Flam3Variation for variations::Parabola {
 
         let (sr, cr) = sincos!(r);
 
-        f.p0 += self.height * self.weight * sr * sr * f.rc.isaac_01();
+        f.p0 += self.height * self.weight * sqr!(sr) * f.rc.isaac_01();
         f.p1 += self.width * self.weight * cr * f.rc.isaac_01();
     }
 }
@@ -1280,7 +1282,7 @@ impl Flam3Variation for variations::Butterfly {
         let wx = self.weight * *BUTTERFLY_WEIGHT;
 
         let y2 = f.ty * 2.0;
-        let r = wx * sqrt!((f.ty * f.tx).abs() / (EPS + f.tx * f.tx + y2 * y2));
+        let r = wx * sqrt!((f.ty * f.tx).abs() / (EPS + sum_sqr!(f.tx, y2)));
 
         f.p0 += r * f.tx;
         f.p1 += r * y2;
@@ -1491,7 +1493,7 @@ impl Flam3Variation for variations::Lazysusan {
     ) {
         let x = f.tx - self.x;
         let y = f.ty + self.y;
-        let mut r = sqrt!(sqr!(x) + sqr!(y));
+        let mut r = sqrt!(sum_sqr!(x, y));
 
         if r < self.weight {
             let a = atan2!(y, x) + self.spin + self.twist * (self.weight - r);
@@ -1743,7 +1745,7 @@ impl Flam3Variation for variations::Stripes {
         let offsetx = f.tx - roundx;
 
         f.p0 += self.weight * (offsetx * (1.0 - self.space) + roundx);
-        f.p1 += self.weight * (f.ty + offsetx * offsetx * self.warp);
+        f.p1 += self.weight * (f.ty + sqr!(offsetx) * self.warp);
     }
 }
 
@@ -2097,7 +2099,7 @@ impl Flam3Variation for variations::Flux {
         let xmw = f.tx - self.weight;
         let avgr = self.weight
             * (2.0 + self.spread)
-            * sqrt!(sqrt!(f.ty * f.ty + xpw * xpw) / sqrt!(f.ty * f.ty + xmw * xmw));
+            * sqrt!(sqrt!(f.ty * f.ty + sqr!(xpw)) / sqrt!(f.ty * f.ty + sqr!(xmw)));
         let avga = (atan2!(f.ty, xmw) - atan2!(f.ty, xpw)) * 0.5;
 
         f.p0 += avgr * cos!(avga);
@@ -2117,7 +2119,7 @@ impl Flam3Variation for variations::Mobius {
         let re_v = self.re_c * f.tx - self.im_c * f.ty + self.re_d;
         let im_v = self.re_c * f.ty + self.im_c * f.tx + self.im_d;
 
-        let rad_v = self.weight / (re_v * re_v + im_v * im_v);
+        let rad_v = self.weight / sum_sqr!(re_v, im_v);
 
         f.p0 += rad_v * (re_u * re_v + im_u * im_v);
         f.p1 += rad_v * (im_u * re_v - re_u * im_v);

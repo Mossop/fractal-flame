@@ -8,6 +8,7 @@ use std::{cmp::Ordering, f64::consts::PI, ops::Index};
 
 use educe::Educe;
 pub use file::flam3::{flam3_from_reader, flam3_to_writer};
+use math::{atan2, cos, sin};
 use palette::Srgba;
 pub use render::{render, RenderOptions};
 use utils::{parse, PanicCast};

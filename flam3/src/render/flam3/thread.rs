@@ -3,10 +3,8 @@ use std::collections::HashMap;
 use palette::{Pixel, Srgba};
 use uuid::Uuid;
 
-use crate::{
-    ln, pow, render::flam3::filters::DE_THRESH, sqr, utils::PanicCast, Genome, PaletteMode,
-    Transform,
-};
+use crate::math::{ln, pow, sqr};
+use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
 
 use super::{
     rng::Flam3Rng,

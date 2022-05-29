@@ -9,7 +9,8 @@ use std::fmt::Display;
 use image::RgbaImage;
 use rand::RngCore;
 
-use crate::{ln, pow, utils::PanicCast, Affine, Genome, Palette, Transform};
+use crate::math::{ln, pow};
+use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
 
 use self::{rect::render_rectangle, rng::Flam3Rng};
 

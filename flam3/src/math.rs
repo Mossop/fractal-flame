@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! sin {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -9,7 +8,6 @@ macro_rules! sin {
     };
 }
 
-#[macro_export]
 macro_rules! sinh {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -20,7 +18,6 @@ macro_rules! sinh {
     };
 }
 
-#[macro_export]
 macro_rules! cos {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -31,7 +28,6 @@ macro_rules! cos {
     };
 }
 
-#[macro_export]
 macro_rules! acos {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -42,7 +38,6 @@ macro_rules! acos {
     };
 }
 
-#[macro_export]
 macro_rules! cosh {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -53,7 +48,6 @@ macro_rules! cosh {
     };
 }
 
-#[macro_export]
 macro_rules! tan {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -64,7 +58,6 @@ macro_rules! tan {
     };
 }
 
-#[macro_export]
 macro_rules! atan2 {
     ($a:expr, $b:expr) => {
         if cfg!(feature = "libm") {
@@ -75,7 +68,6 @@ macro_rules! atan2 {
     };
 }
 
-#[macro_export]
 macro_rules! sincos {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -86,7 +78,6 @@ macro_rules! sincos {
     };
 }
 
-#[macro_export]
 macro_rules! sqrt {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -97,7 +88,6 @@ macro_rules! sqrt {
     };
 }
 
-#[macro_export]
 macro_rules! exp {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -108,7 +98,6 @@ macro_rules! exp {
     };
 }
 
-#[macro_export]
 macro_rules! pow {
     ($a:expr, $b:expr) => {
         if cfg!(feature = "libm") {
@@ -119,14 +108,18 @@ macro_rules! pow {
     };
 }
 
-#[macro_export]
 macro_rules! sqr {
     ($a:expr) => {
         $a * $a
     };
 }
 
-#[macro_export]
+macro_rules! sum_sqr {
+    ($a:expr, $b:expr) => {
+        $a * $a + $b * $b
+    };
+}
+
 macro_rules! log10 {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -137,7 +130,6 @@ macro_rules! log10 {
     };
 }
 
-#[macro_export]
 macro_rules! ln {
     ($e:expr) => {
         if cfg!(feature = "libm") {
@@ -147,3 +139,7 @@ macro_rules! ln {
         }
     };
 }
+
+pub(crate) use {
+    acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqr, sqrt, sum_sqr, tan,
+};

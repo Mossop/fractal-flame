@@ -1,8 +1,7 @@
 use std::f64::consts::PI;
 
-use crate::{
-    cos, exp, fastdiv, pow, sin, sqr, sqrt, utils::PanicCast, SpatialFilter, TemporalFilter,
-};
+use crate::math::{cos, exp, pow, sin, sqr, sqrt, sum_sqr};
+use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilter};
 
 use super::{Field, Flam3DeHelper, Flam3Frame};
 
@@ -258,7 +257,7 @@ pub(super) fn flam3_create_spatial_filter(
         1.0
     };
 
-    let mut filter = vec![0.0; (fwidth * fwidth).usize()];
+    let mut filter = vec![0.0; (sqr!(fwidth)).usize()];
 
     /* fill in the coefs */
     for i in 0..fwidth {
@@ -445,7 +444,7 @@ pub(super) fn flam3_create_de_filters(
         /* Calculate norm of kernel separately (easier) */
         for dej in -de_half_size..=de_half_size {
             for dek in -de_half_size..=de_half_size {
-                let de_filt_d = sqrt!((dej * dej + dek * dek).f64()) / de_filt_h;
+                let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
 
                 /* Only populate the coefs within this radius */
                 if de_filt_d <= 1.0 {
@@ -456,7 +455,7 @@ pub(super) fn flam3_create_de_filters(
                     );
 
                     /* Epanichnikov */
-                    //             de_filt_sum += (1.0 - (de_filt_d * de_filt_d));
+                    //             de_filt_sum += (1.0 - sqr!(de_filt_d));
                 }
             }
         }
@@ -466,7 +465,7 @@ pub(super) fn flam3_create_de_filters(
         /* Calculate the unique entries of the kernel */
         for dej in 0..=de_half_size {
             for dek in 0..=dej {
-                let de_filt_d = sqrt!((dej * dej + dek * dek).f64()) / de_filt_h;
+                let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
 
                 /* Only populate the coefs within this radius */
                 if de_filt_d > 1.0 {
@@ -479,7 +478,7 @@ pub(super) fn flam3_create_de_filters(
                     ) / de_filt_sum;
 
                     /* Epanichnikov */
-                    //             de_filter_coefs[filter_coef_idx] = (1.0 - (de_filt_d * de_filt_d))/de_filt_sum;
+                    //             de_filter_coefs[filter_coef_idx] = (1.0 - sqr!(de_filt_d))/de_filt_sum;
                 }
 
                 filter_coef_idx += 1;

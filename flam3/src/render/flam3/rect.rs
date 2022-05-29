@@ -2,10 +2,9 @@ use std::f64::consts::PI;
 
 use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
+use crate::math::{cos, ln, pow, sin, sqr};
 use crate::{
-    cos, ln, pow,
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
-    sin,
     utils::PanicCast,
 };
 
@@ -253,7 +252,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             }
 
             let scale = pow!(2.0_f64, cp.zoom);
-            sample_density = cp.sample_density * scale * scale;
+            sample_density = cp.sample_density * sqr!(scale);
 
             ppux = cp.pixels_per_unit * scale;
             ppuy = if field != Field::Both {
@@ -345,7 +344,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             * 268.0
             * batch_filter[batch_num.usize()])
             / 256.0;
-        let k2 = ((oversample * oversample * num_batches).f64() * ppux * ppuy)
+        let k2 = ((sqr!(oversample) * num_batches).f64() * ppux * ppuy)
             / (cp.contrast
                 * image_width.f64()
                 * image_height.f64()
