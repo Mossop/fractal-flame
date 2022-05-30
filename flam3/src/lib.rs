@@ -1,4 +1,5 @@
 pub mod file;
+pub(crate) mod logging;
 pub(crate) mod math;
 pub mod render;
 pub(crate) mod utils;

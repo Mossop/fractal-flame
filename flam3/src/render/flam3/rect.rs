@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 
 use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
+use crate::logging::state;
 use crate::math::{cos, ln, pow, sin, sqr};
 use crate::{
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
@@ -224,6 +225,12 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 num_temporal_samples
             );
 
+            let run_state = state!({
+                step: "iterating",
+                batch: batch_num,
+                temporal_sample: temporal_sample_num,
+            });
+
             let color_scalar =
                 temporal_filter[(batch_num * num_temporal_samples + temporal_sample_num).usize()];
 
@@ -319,9 +326,15 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 });
             }
 
-            for helper in fth {
+            for (index, helper) in fth.drain(..).enumerate() {
                 // TODO actually use threads
-                iter_thread::<Ops>(helper, &mut buckets)?;
+                iter_thread::<Ops>(
+                    helper,
+                    &mut buckets,
+                    state!(run_state, {
+                        thread: index,
+                    }),
+                )?;
             }
 
             if fic.aborted {

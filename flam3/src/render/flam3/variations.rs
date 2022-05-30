@@ -2,6 +2,7 @@ use std::f64::consts::{FRAC_1_PI, FRAC_2_PI, FRAC_PI_2, FRAC_PI_4, PI};
 
 use lazy_static::lazy_static;
 
+use crate::logging::{runlog, state, RunState};
 use crate::math::{
     acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqr, sqrt, sum_sqr, tan,
 };
@@ -152,6 +153,7 @@ pub trait Flam3Variation: Variation {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        run_state: RunState,
     );
 
     fn is_pre(&self) -> bool {
@@ -223,8 +225,15 @@ impl Flam3Variation for Var {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        run_state: RunState,
     ) {
-        with_var!(self, v, v.apply(f, coeffs, precalc))
+        with_var!(self, v, v.apply(f, coeffs, precalc, run_state.clone()));
+        runlog!(state!(run_state, {
+            f_tx: f.tx,
+            f_ty: f.ty,
+            f_p0: f.p0,
+            f_p1: f.p1,
+        }));
     }
 
     fn is_pre(&self) -> bool {
@@ -238,6 +247,7 @@ impl Flam3Variation for variations::Linear {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * f.tx;
         f.p1 += self.weight * f.ty;
@@ -250,6 +260,7 @@ impl Flam3Variation for variations::Sinusoidal {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * sin!(f.tx);
         f.p1 += self.weight * sin!(f.ty);
@@ -262,6 +273,7 @@ impl Flam3Variation for variations::Spherical {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r2 = self.weight / (f.sumsq() + EPS);
 
@@ -276,6 +288,7 @@ impl Flam3Variation for variations::Swirl {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r2 = f.sumsq();
 
@@ -294,6 +307,7 @@ impl Flam3Variation for variations::Horseshoe {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = self.weight / (f.sqrt() + EPS);
 
@@ -308,6 +322,7 @@ impl Flam3Variation for variations::Polar {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let nx = f.atan() * M_1_PI;
         let ny = f.sqrt() - 1.0;
@@ -323,6 +338,7 @@ impl Flam3Variation for variations::Handkerchief {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.atan();
         let r = f.sqrt();
@@ -338,6 +354,7 @@ impl Flam3Variation for variations::Heart {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.sqrt() * f.atan();
         let r = self.weight * f.sqrt();
@@ -355,6 +372,7 @@ impl Flam3Variation for variations::Disc {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.atan() * M_1_PI;
         let r = M_PI * f.sqrt();
@@ -371,6 +389,7 @@ impl Flam3Variation for variations::Spiral {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = f.sqrt() + EPS;
         let r1 = self.weight / r;
@@ -387,6 +406,7 @@ impl Flam3Variation for variations::Hyperbolic {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = f.sqrt() + EPS;
 
@@ -401,6 +421,7 @@ impl Flam3Variation for variations::Diamond {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = f.sqrt();
         let (sr, cr) = sincos!(r);
@@ -416,6 +437,7 @@ impl Flam3Variation for variations::Ex {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.atan();
         let r = f.sqrt();
@@ -437,6 +459,7 @@ impl Flam3Variation for variations::Julia {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut a = 0.5 * f.atan();
 
@@ -459,6 +482,7 @@ impl Flam3Variation for variations::Bent {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut nx = f.tx;
         let mut ny = f.ty;
@@ -481,6 +505,7 @@ impl Flam3Variation for variations::Waves {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let c10 = coeffs[1][0];
         let c11 = coeffs[1][1];
@@ -499,6 +524,7 @@ impl Flam3Variation for variations::Fisheye {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = 2.0 * self.weight / (f.sqrt() + 1.0);
 
@@ -513,6 +539,7 @@ impl Flam3Variation for variations::Popcorn {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let dx = tan!(3.0 * f.ty);
         let dy = tan!(3.0 * f.tx);
@@ -531,6 +558,7 @@ impl Flam3Variation for variations::Exponential {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let dx = self.weight * exp!(f.tx - 1.0);
         let dy = M_PI * f.ty;
@@ -548,6 +576,7 @@ impl Flam3Variation for variations::Power {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = self.weight * pow!(f.sqrt(), f.sina());
 
@@ -562,6 +591,7 @@ impl Flam3Variation for variations::Cosine {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.tx * M_PI;
 
@@ -580,6 +610,7 @@ impl Flam3Variation for variations::Rings {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let dx = coeffs[2][0] * coeffs[2][0] + EPS;
         let mut r = f.sqrt();
@@ -596,6 +627,7 @@ impl Flam3Variation for variations::Fan {
         f: &mut Flam3IterHelper,
         coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let dx = M_PI * (coeffs[2][0] * coeffs[2][0] + EPS);
         let dy = coeffs[2][1];
@@ -618,6 +650,7 @@ impl Flam3Variation for variations::Blob {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut r = f.sqrt();
         let a = f.atan();
@@ -636,6 +669,7 @@ impl Flam3Variation for variations::Pdj {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let nx1 = cos!(self.b * f.tx);
         let nx2 = sin!(self.c * f.tx);
@@ -653,6 +687,7 @@ impl Flam3Variation for variations::Fan2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let dy = self.y;
         let dx = M_PI * (sqr!(self.x) + EPS);
@@ -681,6 +716,7 @@ impl Flam3Variation for variations::Rings2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut r = f.sqrt();
         let dx = self.val * self.val + EPS;
@@ -698,6 +734,7 @@ impl Flam3Variation for variations::Eyefish {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = (self.weight * 2.0) / (f.sqrt() + 1.0);
 
@@ -712,6 +749,7 @@ impl Flam3Variation for variations::Bubble {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = self.weight / (0.25 * (f.sumsq()) + 1.0);
 
@@ -726,6 +764,7 @@ impl Flam3Variation for variations::Cylinder {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * sin!(f.tx);
         f.p1 += self.weight * f.ty;
@@ -738,6 +777,7 @@ impl Flam3Variation for variations::Perspective {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let t = 1.0 / (self.distance - f.ty * precalc.persp_vsin.unwrap());
 
@@ -752,6 +792,7 @@ impl Flam3Variation for variations::Noise {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
         let (sinr, cosr) = sincos!(tmpr);
@@ -769,6 +810,7 @@ impl Flam3Variation for variations::Julian {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let t_rnd = ((precalc.julian_r_n.unwrap()) * f.rc.isaac_01()).trunc();
 
@@ -788,6 +830,7 @@ impl Flam3Variation for variations::Juliascope {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let t_rnd = ((precalc.juliascope_r_n.unwrap()) * f.rc.isaac_01()).trunc();
 
@@ -812,6 +855,7 @@ impl Flam3Variation for variations::Blur {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
         let (sinr, cosr) = sincos!(tmpr);
@@ -829,6 +873,7 @@ impl Flam3Variation for variations::GaussianBlur {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let ang = f.rc.isaac_01() * 2.0 * M_PI;
         let (sina, cosa) = sincos!(ang);
@@ -847,6 +892,7 @@ impl Flam3Variation for variations::RadialBlur {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /* Get pseudo-gaussian */
         let rnd = self.weight
@@ -869,6 +915,7 @@ impl Flam3Variation for variations::Pie {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let sl = (f.rc.isaac_01() * self.slices + 0.5).trunc();
         let a = self.rotation + 2.0 * M_PI * (sl + f.rc.isaac_01() * self.thickness) / self.slices;
@@ -886,6 +933,7 @@ impl Flam3Variation for variations::Ngon {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r_factor = pow!(f.sumsq(), self.power / 2.0);
 
@@ -911,6 +959,7 @@ impl Flam3Variation for variations::Curl {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let re = 1.0 + self.c1 * f.tx + self.c2 * (f.tx * f.tx - f.ty * f.ty);
         let im = self.c1 * f.ty + 2.0 * self.c2 * f.tx * f.ty;
@@ -928,6 +977,7 @@ impl Flam3Variation for variations::Rectangles {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         if self.x == 0.0 {
             f.p0 += self.weight * f.tx;
@@ -949,6 +999,7 @@ impl Flam3Variation for variations::Arch {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -970,6 +1021,7 @@ impl Flam3Variation for variations::Tangent {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * sin!(f.tx) / cos!(f.ty);
         f.p1 += self.weight * tan!(f.ty);
@@ -982,6 +1034,7 @@ impl Flam3Variation for variations::Square {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * (f.rc.isaac_01() - 0.5);
         f.p1 += self.weight * (f.rc.isaac_01() - 0.5);
@@ -994,6 +1047,7 @@ impl Flam3Variation for variations::Rays {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -1016,6 +1070,7 @@ impl Flam3Variation for variations::Blade {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -1038,6 +1093,7 @@ impl Flam3Variation for variations::Secant2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /* Intended as a 'fixed' version of secant */
 
@@ -1067,6 +1123,7 @@ impl Flam3Variation for variations::Twintrian {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -1093,6 +1150,7 @@ impl Flam3Variation for variations::Cross {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let s = f.tx * f.tx - f.ty * f.ty;
         let r = self.weight * sqrt!(1.0 / (sqr!(s) + EPS));
@@ -1108,6 +1166,7 @@ impl Flam3Variation for variations::Disc2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let t = precalc.disc2_timespi.unwrap() * (f.tx + f.ty);
         let (sinr, cosr) = sincos!(t);
@@ -1124,6 +1183,7 @@ impl Flam3Variation for variations::SuperShape {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let theta = precalc.super_shape_pm_4.unwrap() * f.atanyx() + M_PI_4;
 
@@ -1150,6 +1210,7 @@ impl Flam3Variation for variations::Flower {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let theta = f.atanyx();
         let r = self.weight * (f.rc.isaac_01() - self.holes) * cos!(self.petals * theta) / f.sqrt();
@@ -1165,6 +1226,7 @@ impl Flam3Variation for variations::Conic {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let ct = f.tx / f.sqrt();
         let r = self.weight * (f.rc.isaac_01() - self.holes) * self.eccentricity
@@ -1182,6 +1244,7 @@ impl Flam3Variation for variations::Parabola {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = f.sqrt();
 
@@ -1198,6 +1261,7 @@ impl Flam3Variation for variations::Bent2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut nx = f.tx;
         let mut ny = f.ty;
@@ -1220,6 +1284,7 @@ impl Flam3Variation for variations::Bipolar {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let x2y2 = f.sumsq();
         let t = x2y2 + 1.0;
@@ -1244,6 +1309,7 @@ impl Flam3Variation for variations::Boarders {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let round_x = f.tx.round();
         let round_y = f.ty.round();
@@ -1277,6 +1343,7 @@ impl Flam3Variation for variations::Butterfly {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /* wx is self.weight *4/sqrt(3*pi) */
         let wx = self.weight * *BUTTERFLY_WEIGHT;
@@ -1295,6 +1362,7 @@ impl Flam3Variation for variations::Cell {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let inv_cell_size = 1.0 / self.size;
 
@@ -1334,6 +1402,7 @@ impl Flam3Variation for variations::Cpow {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.atanyx();
         let lnr = 0.5 * ln!(f.sumsq());
@@ -1357,6 +1426,7 @@ impl Flam3Variation for variations::Curve {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut pc_xlen = self.x_length * self.x_length;
         let mut pc_ylen = self.y_length * self.y_length;
@@ -1380,6 +1450,7 @@ impl Flam3Variation for variations::Edisc {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let tmp = f.sumsq() + 1.0;
         let tmp2 = 2.0 * f.tx;
@@ -1410,6 +1481,7 @@ impl Flam3Variation for variations::Elliptic {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let tmp = f.sumsq() + 1.0;
         let x2 = 2.0 * f.tx;
@@ -1447,6 +1519,7 @@ impl Flam3Variation for variations::Escher {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let a = f.atanyx();
         let lnr = 0.5 * ln!(f.sumsq());
@@ -1472,6 +1545,7 @@ impl Flam3Variation for variations::Foci {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let expx = exp!(f.tx) * 0.5;
         let expnx = 0.25 / expx;
@@ -1490,6 +1564,7 @@ impl Flam3Variation for variations::Lazysusan {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let x = f.tx - self.x;
         let y = f.ty + self.y;
@@ -1517,6 +1592,7 @@ impl Flam3Variation for variations::Loonie {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -1544,6 +1620,7 @@ impl Flam3Variation for variations::PreBlur {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /* Get pseudo-gaussian */
         let rnd_g = self.weight
@@ -1568,6 +1645,7 @@ impl Flam3Variation for variations::Modulus {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let xr = 2.0 * self.x;
         let yr = 2.0 * self.y;
@@ -1596,6 +1674,7 @@ impl Flam3Variation for variations::Oscilloscope {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let tpf = 2.0 * M_PI * self.frequency;
 
@@ -1621,6 +1700,7 @@ impl Flam3Variation for variations::Polar2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let p2v = self.weight / M_PI;
 
@@ -1635,6 +1715,7 @@ impl Flam3Variation for variations::Popcorn2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * (f.tx + self.x * sin!(tan!(f.ty * self.c)));
         f.p1 += self.weight * (f.ty + self.y * sin!(tan!(f.tx * self.c)));
@@ -1647,6 +1728,7 @@ impl Flam3Variation for variations::Scry {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * Note that scry does not multiply by self.weight , but as the
@@ -1674,6 +1756,7 @@ impl Flam3Variation for variations::Separation {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let sx2 = self.x * self.x;
         let sy2 = self.y * self.y;
@@ -1698,6 +1781,7 @@ impl Flam3Variation for variations::Split {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         if cos!(f.tx * self.x_size * M_PI) >= 0.0 {
             f.p1 += self.weight * f.ty;
@@ -1719,6 +1803,7 @@ impl Flam3Variation for variations::Splits {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         if f.tx >= 0.0 {
             f.p0 += self.weight * (f.tx + self.x);
@@ -1740,6 +1825,7 @@ impl Flam3Variation for variations::Stripes {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let roundx = (f.tx + 0.5).floor();
         let offsetx = f.tx - roundx;
@@ -1755,6 +1841,7 @@ impl Flam3Variation for variations::Wedge {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut r = f.sqrt();
         let mut a = f.atanyx() + self.swirl * r;
@@ -1779,6 +1866,7 @@ impl Flam3Variation for variations::WedgeJulia {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let r = self.weight * pow!(f.sumsq(), precalc.wedge_julia_cn.unwrap());
         let t_rnd = (precalc.wedge_julia_r_n.unwrap() * f.rc.isaac_01()).trunc();
@@ -1800,6 +1888,7 @@ impl Flam3Variation for variations::WedgeSph {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let mut r = 1.0 / (f.sqrt() + EPS);
         let mut a = f.atanyx() + self.swirl * r;
@@ -1823,6 +1912,7 @@ impl Flam3Variation for variations::Whorl {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         /*
          * !!! Note !!!
@@ -1851,6 +1941,7 @@ impl Flam3Variation for variations::Waves2 {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * (f.tx + self.x_scale * sin!(f.ty * self.x_frequency));
         f.p1 += self.weight * (f.ty + self.y_scale * sin!(f.tx * self.y_frequency));
@@ -1863,6 +1954,7 @@ impl Flam3Variation for variations::Exp {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let expe = exp!(f.tx);
         let (expsin, expcos) = sincos!(f.ty);
@@ -1877,6 +1969,7 @@ impl Flam3Variation for variations::Log {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         f.p0 += self.weight * 0.5 * ln!(f.sumsq());
         f.p1 += self.weight * f.atanyx();
@@ -1889,6 +1982,7 @@ impl Flam3Variation for variations::Sin {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (sinsin, sinacos) = sincos!(f.tx);
         let sinsinh = sinh!(f.ty);
@@ -1904,6 +1998,7 @@ impl Flam3Variation for variations::Cos {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (cossin, coscos) = sincos!(f.tx);
         let cossinh = sinh!(f.ty);
@@ -1919,6 +2014,7 @@ impl Flam3Variation for variations::Tan {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (tansin, tancos) = sincos!(2.0 * f.tx);
         let tansinh = sinh!(2.0 * f.ty);
@@ -1935,6 +2031,7 @@ impl Flam3Variation for variations::Sec {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (secsin, seccos) = sincos!(f.tx);
         let secsinh = sinh!(f.ty);
@@ -1951,6 +2048,7 @@ impl Flam3Variation for variations::Csc {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (cscsin, csccos) = sincos!(f.tx);
         let cscsinh = sinh!(f.ty);
@@ -1967,6 +2065,7 @@ impl Flam3Variation for variations::Cot {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (cotsin, cotcos) = sincos!(2.0 * f.tx);
         let cotsinh = sinh!(2.0 * f.ty);
@@ -1983,6 +2082,7 @@ impl Flam3Variation for variations::Sinh {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (sinhsin, sinhcos) = sincos!(f.ty);
         let sinhsinh = sinh!(f.tx);
@@ -1998,6 +2098,7 @@ impl Flam3Variation for variations::Cosh {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (coshsin, coshcos) = sincos!(f.ty);
         let coshsinh = sinh!(f.tx);
@@ -2013,6 +2114,7 @@ impl Flam3Variation for variations::Tanh {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (tanhsin, tanhcos) = sincos!(2.0 * f.ty);
         let tanhsinh = sinh!(2.0 * f.tx);
@@ -2029,6 +2131,7 @@ impl Flam3Variation for variations::Sech {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (sechsin, sechcos) = sincos!(f.ty);
         let sechsinh = sinh!(f.tx);
@@ -2045,6 +2148,7 @@ impl Flam3Variation for variations::Csch {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (cschsin, cschcos) = sincos!(f.ty);
         let cschsinh = sinh!(f.tx);
@@ -2061,6 +2165,7 @@ impl Flam3Variation for variations::Coth {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let (cothsin, cothcos) = sincos!(2.0 * f.ty);
         let cothsinh = sinh!(2.0 * f.tx);
@@ -2077,6 +2182,7 @@ impl Flam3Variation for variations::Auger {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let s = sin!(self.frequency * f.tx);
         let t = sin!(self.frequency * f.ty);
@@ -2094,6 +2200,7 @@ impl Flam3Variation for variations::Flux {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let xpw = f.tx + self.weight;
         let xmw = f.tx - self.weight;
@@ -2113,6 +2220,7 @@ impl Flam3Variation for variations::Mobius {
         f: &mut Flam3IterHelper,
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
+        _run_state: RunState,
     ) {
         let re_u = self.re_a * f.tx - self.im_a * f.ty + self.re_b;
         let im_u = self.re_a * f.ty + self.im_a * f.tx + self.im_b;
@@ -2132,6 +2240,7 @@ pub fn apply_xform(
     q: &mut [f64; 4],
     precalc: &mut VariationPrecalculations,
     rc: &mut Flam3Rng,
+    run_state: RunState,
 ) -> bool {
     let s1 = xform.color_speed;
 
@@ -2144,13 +2253,27 @@ pub fn apply_xform(
     /* Pre-xforms go here, and modify the f.tx and f.ty values */
     for var in xform.variations.iter() {
         if var.is_pre() {
-            var.apply(&mut f, &xform.coefficients, precalc);
+            var.apply(
+                &mut f,
+                &xform.coefficients,
+                precalc,
+                state!(run_state, {
+                    variation: var.name().to_ascii_lowercase(),
+                }),
+            );
         }
     }
 
     for var in xform.variations.iter() {
         if !var.is_pre() {
-            var.apply(&mut f, &xform.coefficients, precalc);
+            var.apply(
+                &mut f,
+                &xform.coefficients,
+                precalc,
+                state!(run_state, {
+                    variation: var.name().to_ascii_lowercase(),
+                }),
+            );
         }
     }
 
@@ -2163,6 +2286,13 @@ pub fn apply_xform(
 
     /* Check for badvalues and return randoms if bad */
     if badvalue(q[0]) || badvalue(q[1]) {
+        runlog!(
+            "Bad values",
+            state!(run_state, {
+                q0: q[0],
+                q1: q[1],
+            })
+        );
         q[0] = rc.isaac_11();
         q[1] = rc.isaac_11();
         false

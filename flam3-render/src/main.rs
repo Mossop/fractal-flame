@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .name
             .clone()
             .unwrap_or_else(|| format!("genome {}", index));
-        println!("Rendering {}...", name);
+        eprintln!("Rendering {}...", name);
         let data = render(
             genome,
             RenderOptions {
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             make_name(index, &args.out)
         };
-        println!("Writing {}...", name);
+        eprintln!("Writing {}...", name);
 
         data.save_with_format(name, ImageFormat::Png)?;
     }

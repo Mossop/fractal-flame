@@ -27,6 +27,7 @@ libm = { version = "^0.2.2", optional = true }
 [features]
 fastmath = []
 libm = ["dep:libm"]
+logging = []
 
 [dev-dependencies]
 image-compare = "^0.2.2"

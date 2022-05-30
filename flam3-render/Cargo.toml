@@ -17,3 +17,4 @@ image = "^0.24.2"
 [features]
 fastmath = ["flam3/fastmath"]
 libm = ["flam3/libm"]
+logging = ["flam3/logging"]
