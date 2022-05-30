@@ -326,13 +326,13 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 });
             }
 
-            for (index, helper) in fth.drain(..).enumerate() {
+            for (_index, helper) in fth.drain(..).enumerate() {
                 // TODO actually use threads
                 iter_thread::<Ops>(
                     helper,
                     &mut buckets,
                     state!(run_state, {
-                        thread: index,
+                        thread: _index,
                     }),
                 )?;
             }

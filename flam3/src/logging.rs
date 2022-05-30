@@ -1,9 +1,6 @@
-use std::fmt::Display;
+#![allow(dead_code)]
 
-#[cfg(feature = "logging")]
 pub type RunState = OrderedKV;
-#[cfg(not(feature = "logging"))]
-pub type RunState = bool;
 
 pub trait LogRepr {
     fn repr(self) -> String;
@@ -47,11 +44,14 @@ impl LogRepr for i32 {
 
 #[derive(Default, Clone)]
 pub struct OrderedKV {
+    #[cfg(feature = "logging")]
     pairs: std::collections::HashMap<String, String>,
+    #[cfg(feature = "logging")]
     order: Vec<String>,
 }
 
 impl OrderedKV {
+    #[cfg(feature = "logging")]
     pub fn insert<V: LogRepr>(&mut self, key: String, value: V) {
         if !self.pairs.contains_key(&key) {
             self.order.push(key.clone());
@@ -59,9 +59,13 @@ impl OrderedKV {
 
         self.pairs.insert(key, value.repr());
     }
+
+    #[cfg(not(feature = "logging"))]
+    pub fn insert<V: LogRepr>(&mut self, _key: String, _value: V) {}
 }
 
-impl Display for OrderedKV {
+#[cfg(feature = "logging")]
+impl std::fmt::Display for OrderedKV {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut elements: Vec<String> = Vec::new();
         for key in &self.order {
@@ -104,14 +108,14 @@ macro_rules! state {
             $field:ident: $value:expr,
         )*
     }) => {
-        false
+        crate::logging::RunState::default()
     };
     ($state:expr, {
         $(
             $field:ident: $value:expr,
         )*
     }) => {
-        false
+        $state.clone()
     };
 }
 
