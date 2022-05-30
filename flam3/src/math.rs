@@ -1,10 +1,3 @@
-#[cfg(feature = "libm")]
-macro_rules! sin {
-    ($e:expr) => {
-        libm::sin($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
 macro_rules! sin {
     ($e:expr) => {
         $e.sin()

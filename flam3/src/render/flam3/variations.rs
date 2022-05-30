@@ -113,7 +113,7 @@ impl VariationPrecalculations {
         let dx = transform.coefficients[2][0];
         let dy = transform.coefficients[2][1];
 
-        self.waves_dx2 = Some(1.0 / (dx * dx + EPS));
+        self.waves_dx2 = Some(1.0 / (sqr!(dx) + EPS));
         self.waves_dy2 = Some(1.0 / (sqr!(dy) + EPS));
     }
 
@@ -1367,32 +1367,32 @@ impl Flam3Variation for variations::Cell {
         let inv_cell_size = 1.0 / self.size;
 
         /* calculate input cell */
-        let mut x = (f.tx * inv_cell_size).floor();
-        let mut y = (f.ty * inv_cell_size).floor();
+        let mut x = (f.tx * inv_cell_size).floor().i32();
+        let mut y = (f.ty * inv_cell_size).floor().i32();
 
         /* Offset from cell origin */
-        let dx = f.tx - x * self.size;
-        let dy = f.ty - y * self.size;
+        let dx = f.tx - x.f64() * self.size;
+        let dy = f.ty - y.f64() * self.size;
 
         /* interleave cells */
-        if y >= 0.0 {
-            if x >= 0.0 {
-                y *= 2.0;
-                x *= 2.0;
+        if y >= 0 {
+            if x >= 0 {
+                y *= 2;
+                x *= 2;
             } else {
-                y *= 2.0;
-                x = -(2.0 * x + 1.0);
+                y *= 2;
+                x = -(2 * x + 1);
             }
-        } else if x >= 0.0 {
-            y = -(2.0 * y + 1.0);
-            x *= 2.0;
+        } else if x >= 0 {
+            y = -(2 * y + 1);
+            x *= 2;
         } else {
-            y = -(2.0 * y + 1.0);
-            x = -(2.0 * x + 1.0);
+            y = -(2 * y + 1);
+            x = -(2 * x + 1);
         }
 
-        f.p0 += self.weight * (dx + x * self.size);
-        f.p1 -= self.weight * (dy + y * self.size);
+        f.p0 += self.weight * (dx + x.f64() * self.size);
+        f.p1 -= self.weight * (dy + y.f64() * self.size);
     }
 }
 
