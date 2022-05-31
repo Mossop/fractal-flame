@@ -1,3 +1,10 @@
+#[cfg(feature = "libm")]
+macro_rules! sin {
+    ($e:expr) => {
+        libm::sin($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
 macro_rules! sin {
     ($e:expr) => {
         $e.sin()
@@ -69,6 +76,13 @@ macro_rules! tan {
     };
 }
 
+#[cfg(feature = "libm")]
+macro_rules! atan2 {
+    ($a:expr, $b:expr) => {
+        libm::atan2($a, $b)
+    };
+}
+#[cfg(not(feature = "libm"))]
 macro_rules! atan2 {
     ($a:expr, $b:expr) => {
         $a.atan2($b)
@@ -101,6 +115,13 @@ macro_rules! sqrt {
     };
 }
 
+#[cfg(feature = "libm")]
+macro_rules! exp {
+    ($e:expr) => {
+        libm::exp($e)
+    };
+}
+#[cfg(not(feature = "libm"))]
 macro_rules! exp {
     ($e:expr) => {
         $e.exp()
