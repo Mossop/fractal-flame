@@ -1,0 +1,8 @@
+#! /bin/sh
+
+SOURCES=`ls flam3/tests/*.flam3`
+for SOURCE in $SOURCES
+do
+  TARGET=`echo $SOURCE | sed -E -e s/\\\\.flam3/.png/`
+  cargo run --release --features libm -- --out=$TARGET --seed=foobar $SOURCE
+done

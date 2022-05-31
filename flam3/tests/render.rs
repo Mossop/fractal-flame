@@ -7,7 +7,7 @@ mod integration {
     use image_compare::rgb_hybrid_compare;
 
     const TEST_SEED: &str = "foobar";
-    const MAX_ERROR: f64 = 0.001;
+    const MAX_ERROR: f64 = 0.00001;
 
     fn do_test(name: &str) {
         let mut test_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
