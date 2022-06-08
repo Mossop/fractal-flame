@@ -460,10 +460,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             for i in 0..fic.width {
                 let ac = &mut accumulate[(i + j * fic.width).usize()];
 
-                let (alpha, ls) = if ac[3].into() <= 0.0 {
+                let (alpha, ls) = if ac[3].f64() <= 0.0 {
                     (0.0, 0.0)
                 } else {
-                    let tmp = ac[3].into() / PREFILTER_WHITE.f64();
+                    let tmp = ac[3].f64() / PREFILTER_WHITE.f64();
                     let mut alpha = flam3_calc_alpha(tmp, g, linrange);
                     let ls = vibrancy * 256.0 * alpha / tmp;
                     if alpha < 0.0 {
@@ -475,7 +475,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     (alpha, ls)
                 };
 
-                let t = [ac[0].into(), ac[1].into(), ac[2].into()];
+                let t = [ac[0].f64(), ac[1].f64(), ac[2].f64()];
                 let newrgb = flam3_calc_newrgb(&t, ls, highpow);
 
                 let bg_color = background.as_raw::<[f64]>();
@@ -520,10 +520,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     let k = filter[(ii + jj * filter_width).usize()];
                     let ac = &mut accumulate[(x + ii + (y + jj) * fic.width).usize()];
 
-                    t[0] += k * ac[0].into();
-                    t[1] += k * ac[1].into();
-                    t[2] += k * ac[2].into();
-                    t[3] += k * ac[3].into();
+                    t[0] += k * ac[0].f64();
+                    t[1] += k * ac[1].f64();
+                    t[2] += k * ac[2].f64();
+                    t[3] += k * ac[3].f64();
                 }
             }
 

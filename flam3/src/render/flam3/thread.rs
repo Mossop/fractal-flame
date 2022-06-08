@@ -264,7 +264,6 @@ pub(super) fn de_thread<Ops: RenderOps>(
     /* Density estimation code */
     for j in str..enr {
         for i in oversample - 1..wid - (oversample - 1) {
-            let mut c = [0.0; 4];
             let mut f_select = 0.0;
             let index = (i + j * wid).usize();
 
@@ -304,7 +303,11 @@ pub(super) fn de_thread<Ops: RenderOps>(
 
             let arr_filt_width = (dthp.de.filter_widths[f_select_int.usize()]).ceil().u32() - 1;
 
-            let b = &buckets[(i + j * wid).usize()..];
+            let bucket_index = (i + j * wid).usize();
+            let mut current_bucket = [0.0; 4];
+            for (current, source) in current_bucket.iter_mut().zip(buckets[bucket_index].iter()) {
+                *current = source.f64();
+            }
 
             for jj in 0..=arr_filt_width.i32() {
                 for ii in 0..=jj {
@@ -314,10 +317,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
                         continue;
                     }
 
-                    c[0] = b[0][0].f64();
-                    c[1] = b[0][1].f64();
-                    c[2] = b[0][2].f64();
-                    c[3] = b[0][3].f64();
+                    let mut c = current_bucket;
 
                     let ls = dthp.de.filter_coefs[f_coef_idx]
                         * (dthp.k1 * ln!(1.0 + c[3] * dthp.k2))

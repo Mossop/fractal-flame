@@ -37,7 +37,7 @@ trait ClonableRng: RngCore + Clone {}
 
 trait RenderOps: Clone + Default {
     type Bucket: PanicCast + Default + Display + Clone + Copy;
-    type Accumulator: PanicCast + Default + Display + Clone + Copy + Into<f64>;
+    type Accumulator: PanicCast + Default + Display + Clone + Copy;
 
     fn into_accumulator(val: f64) -> Self::Accumulator;
     fn bucket_storage(nbuckets: usize) -> Vec<[Self::Bucket; 5]>;

@@ -1,3 +1,4 @@
+// These tests only pass with the libm feature enabled.
 #[cfg(feature = "libm")]
 mod integration {
     use std::{fs::File, io::BufReader, path::PathBuf};
