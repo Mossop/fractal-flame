@@ -104,7 +104,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     // interpolate and get a control point
     let cp = flam3_interpolate(&frame.genomes, frame.time, 0.0)?;
 
-    let oversample = cp.spatial_oversample;
+    let supersample = cp.spatial_supersample;
     let highpow = cp.highlight_power;
     let num_batches = cp.passes;
     let num_temporal_samples = cp.num_temporal_samples;
@@ -142,7 +142,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
        the number of additional rows of buckets we put at the edge so
        that the filter doesn't go off the edge
     */
-    let mut gutter_width = (filter_width.u32() - oversample) / 2;
+    let mut gutter_width = (filter_width.u32() - supersample) / 2;
 
     /*
        Check the size of the density estimation filter.
@@ -151,7 +151,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     */
     let mut max_gnm_de_fw = 0;
     for genome in frame.genomes.iter() {
-        let this_width = (genome.estimator_radius * oversample.f64()).ceil().u32();
+        let this_width = (genome.estimator_radius * supersample.f64()).ceil().u32();
         if this_width > max_gnm_de_fw {
             max_gnm_de_fw = this_width;
         }
@@ -159,7 +159,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
     //  Add OS-1 for the averaging at the edges, if it's > 0 already
     if max_gnm_de_fw > 0 {
-        max_gnm_de_fw += oversample - 1;
+        max_gnm_de_fw += supersample - 1;
     }
 
     //  max_gnm_de_fw is now the number of pixels of additional gutter
@@ -176,8 +176,8 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     let mut fic = Flam3IterConstants::new(frame.clone());
 
     //  Allocate the space required to render the image
-    fic.height = oversample * image_height + 2 * gutter_width;
-    fic.width = oversample * image_width + 2 * gutter_width;
+    fic.height = supersample * image_height + 2 * gutter_width;
+    fic.width = supersample * image_width + 2 * gutter_width;
 
     let nbuckets = (fic.width * fic.height).usize();
     let mut buckets = Ops::bucket_storage(nbuckets);
@@ -208,7 +208,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 cp.estimator_radius,
                 cp.estimator_minimum,
                 cp.estimator_curve,
-                oversample,
+                supersample,
             )?
         } else {
             Flam3DeHelper::default()
@@ -275,8 +275,8 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             };
 
             shift /= ppux;
-            let t0 = gutter_width.f64() / (oversample.f64() * ppux).f64();
-            let t1 = gutter_width.f64() / (oversample.f64() * ppuy).f64();
+            let t0 = gutter_width.f64() / (supersample.f64() * ppux).f64();
+            let t1 = gutter_width.f64() / (supersample.f64() * ppuy).f64();
             let corner0 = cp.center.x - image_width.f64() / ppux / 2.0;
             let corner1 = cp.center.y - image_height.f64() / ppuy / 2.0;
             fic.bounds[0] = corner0 - t0;
@@ -357,7 +357,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             * 268.0
             * batch_filter[batch_num.usize()])
             / 256.0;
-        let k2 = ((sqr!(oversample) * num_batches).f64() * ppux * ppuy)
+        let k2 = ((sqr!(supersample) * num_batches).f64() * ppux * ppuy)
             / (cp.contrast
                 * image_width.f64()
                 * image_height.f64()
@@ -390,7 +390,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 }
             }
         } else {
-            let myspan = fic.height - 2 * (oversample - 1) + 1;
+            let myspan = fic.height - 2 * (supersample - 1) + 1;
             let swath = myspan / frame.num_threads.u32();
 
             //  Create the de helper structures
@@ -421,7 +421,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 deth.push(Flam3DeThreadHelper {
                     width: fic.width,
                     height: fic.height,
-                    oversample,
+                    supersample,
                     de: de.clone(),
                     k1,
                     k2,
@@ -622,9 +622,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 p[pos..pos + bytes.len()].clone_from_slice(&bytes);
             }
 
-            x += oversample;
+            x += supersample;
         }
-        y += oversample;
+        y += supersample;
     }
 
     Ok(())

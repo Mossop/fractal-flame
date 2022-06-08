@@ -244,14 +244,14 @@ pub(super) fn de_thread<Ops: RenderOps>(
     buckets: &[[Ops::Bucket; 5]],
     accumulate: &mut [[Ops::Accumulator; 4]],
 ) {
-    let oversample = dthp.oversample;
-    let ss = (oversample.f64() / 2.0).floor().i32();
-    let scf = (oversample & 1) == 0;
-    let scfact = sqr!(oversample.f64() / (oversample.f64() + 1.0));
+    let supersample = dthp.supersample;
+    let ss = (supersample.f64() / 2.0).floor().i32();
+    let scf = (supersample & 1) == 0;
+    let scfact = sqr!(supersample.f64() / (supersample.f64() + 1.0));
     let wid = dthp.width;
     let hig = dthp.height;
-    let str = (oversample - 1) + dthp.start_row;
-    let enr = ((oversample - 1).i32() + dthp.end_row).u32();
+    let str = (supersample - 1) + dthp.start_row;
+    let enr = ((supersample - 1).i32() + dthp.end_row).u32();
 
     log::trace!(
         "Starting density estimation thread for rows {} to {}, width={}, height={}",
@@ -263,7 +263,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
 
     /* Density estimation code */
     for j in str..enr {
-        for i in oversample - 1..wid - (oversample - 1) {
+        for i in supersample - 1..wid - (supersample - 1) {
             let mut f_select = 0.0;
             let index = (i + j * wid).usize();
 

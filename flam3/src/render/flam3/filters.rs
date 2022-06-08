@@ -237,7 +237,7 @@ pub(super) fn flam3_create_spatial_filter(
     field: Field,
 ) -> Result<(Vec<f64>, u32), String> {
     let sf_kernel = frame.genomes[0].spatial_filter_select;
-    let supersample = frame.genomes[0].spatial_oversample;
+    let supersample = frame.genomes[0].spatial_supersample;
     let sf_radius = frame.genomes[0].spatial_filter_radius;
     let aspect_ratio = frame.pixel_aspect_ratio;
     let sf_supp = flam3_spatial_support(sf_kernel);
@@ -245,7 +245,7 @@ pub(super) fn flam3_create_spatial_filter(
     let fw = 2.0 * sf_supp * supersample.f64() * sf_radius / aspect_ratio;
     let mut fwidth = fw.u32() + 1;
 
-    /* Make sure the filter kernel has same parity as oversample */
+    /* Make sure the filter kernel has same parity as supersample */
     if (fwidth ^ supersample) & 1 > 0 {
         fwidth += 1;
     }
@@ -382,7 +382,7 @@ pub(super) fn flam3_create_de_filters(
         return Err("Estimator must be larger than estimator_minimum".to_string());
     }
 
-    /* We should scale the filter width by the oversample          */
+    /* We should scale the filter width by the supersample          */
     /* The '+1' comes from the assumed distance to the first pixel */
     let comp_max_radius = max_rad * ss.f64() + 1.0;
     let comp_min_radius = min_rad * ss.f64() + 1.0;

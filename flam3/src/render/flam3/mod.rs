@@ -195,7 +195,7 @@ struct Flam3ThreadHelper {
 struct Flam3DeThreadHelper {
     width: u32,
     height: u32,
-    oversample: u32,
+    supersample: u32,
     de: Flam3DeHelper,
     k1: f64,
     k2: f64,
@@ -226,12 +226,12 @@ fn render_internal<Ops: RenderOps>(
     let num_strips = options.num_strips.unwrap_or(1);
     let num_threads = options.threads.unwrap_or(1);
     log::trace!(
-        "Starting render pass, width={}, height={}, channels={}, density={}, oversample={}, threads={}, strips={}",
+        "Starting render pass, width={}, height={}, channels={}, density={}, supersample={}, threads={}, strips={}",
         genome.size.width,
         genome.size.height,
         options.channels,
         genome.sample_density,
-        genome.spatial_oversample,
+        genome.spatial_supersample,
         num_threads,
         num_strips
     );
