@@ -1,6 +1,7 @@
 use std::f64::consts::PI;
 
 use crate::math::{cos, exp, pow, sin, sqr, sqrt, sum_sqr};
+use crate::rect::Rect;
 use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilter};
 
 use super::{Field, Flam3DeHelper, Flam3Frame};
@@ -214,7 +215,7 @@ fn flam3_spatial_filter(spatial_filter: SpatialFilter, x: f64) -> f64 {
     }
 }
 
-fn normalize_vector(v: &mut [f64]) -> Result<(), String> {
+fn normalize_vector(v: &mut Rect<f64>) -> Result<(), String> {
     let mut t = 0.0;
     for val in v.iter() {
         t += val;
@@ -235,18 +236,18 @@ fn normalize_vector(v: &mut [f64]) -> Result<(), String> {
 pub(super) fn flam3_create_spatial_filter(
     frame: &Flam3Frame,
     field: Field,
-) -> Result<(Vec<f64>, u32), String> {
-    let sf_kernel = frame.genomes[0].spatial_filter_select;
+) -> Result<Rect<f64>, String> {
+    let spatial_filter = frame.genomes[0].spatial_filter;
     let supersample = frame.genomes[0].spatial_supersample;
-    let sf_radius = frame.genomes[0].spatial_filter_radius;
+    let filter_radius = frame.genomes[0].spatial_filter_radius;
     let aspect_ratio = frame.pixel_aspect_ratio;
-    let sf_supp = flam3_spatial_support(sf_kernel);
+    let sf_supp = flam3_spatial_support(spatial_filter);
 
-    let fw = 2.0 * sf_supp * supersample.f64() * sf_radius / aspect_ratio;
-    let mut fwidth = fw.u32() + 1;
+    let fw = 2.0 * sf_supp * supersample.f64() * filter_radius / aspect_ratio;
+    let mut fwidth = fw.usize() + 1;
 
     /* Make sure the filter kernel has same parity as supersample */
-    if (fwidth ^ supersample) & 1 > 0 {
+    if (fwidth.u32() ^ supersample) & 1 > 0 {
         fwidth += 1;
     }
 
@@ -257,7 +258,7 @@ pub(super) fn flam3_create_spatial_filter(
         1.0
     };
 
-    let mut filter = vec![0.0; (sqr!(fwidth)).usize()];
+    let mut filter = Rect::default(fwidth, fwidth);
 
     /* fill in the coefs */
     for i in 0..fwidth {
@@ -274,14 +275,14 @@ pub(super) fn flam3_create_spatial_filter(
             /* Adjust for aspect ratio */
             jj /= aspect_ratio;
 
-            filter[(i + j * fwidth).usize()] =
-                flam3_spatial_filter(sf_kernel, ii) * flam3_spatial_filter(sf_kernel, jj);
+            filter[(i, j)] =
+                flam3_spatial_filter(spatial_filter, ii) * flam3_spatial_filter(spatial_filter, jj);
         }
     }
 
     normalize_vector(&mut filter)?;
 
-    Ok((filter, fwidth))
+    Ok(filter)
 }
 
 pub fn flam3_create_temporal_filter(
@@ -368,7 +369,7 @@ pub(super) fn flam3_create_de_filters(
     max_rad: f64,
     min_rad: f64,
     curve: f64,
-    ss: u32,
+    supersample: u32,
 ) -> Result<Flam3DeHelper, String> {
     let keep_thresh = 100;
 
@@ -384,8 +385,8 @@ pub(super) fn flam3_create_de_filters(
 
     /* We should scale the filter width by the supersample          */
     /* The '+1' comes from the assumed distance to the first pixel */
-    let comp_max_radius = max_rad * ss.f64() + 1.0;
-    let comp_min_radius = min_rad * ss.f64() + 1.0;
+    let comp_max_radius = max_rad * supersample.f64() + 1.0;
+    let comp_min_radius = min_rad * supersample.f64() + 1.0;
 
     /* Calculate how many filter kernels we need based on the decay function */
     /*                                                                       */

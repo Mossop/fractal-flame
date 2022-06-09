@@ -791,7 +791,7 @@ fn serialize_genome<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     writep!(attrs, genome.rotate, "rotate");
     writep!(attrs, genome.spatial_supersample, "supersample");
     writep!(attrs, genome.spatial_filter_radius, "filter");
-    writep!(attrs, genome.spatial_filter_select, "filter_shape");
+    writep!(attrs, genome.spatial_filter, "filter_shape");
     writep!(attrs, genome.temporal_filter, "temporal_filter_type");
     if genome.temporal_filter == TemporalFilter::Exp {
         writep!(attrs, genome.temporal_filter_exp, "temporal_filter_exp");
@@ -869,7 +869,7 @@ fn parse_genome<R: Read>(
     setp!(attrs, genome.spatial_supersample, "supersample");
     setp!(attrs, genome.spatial_supersample, "oversample");
     setp!(attrs, genome.spatial_filter_radius, "filter");
-    setp!(attrs, genome.spatial_filter_select, "filter_shape");
+    setp!(attrs, genome.spatial_filter, "filter_shape");
     setp!(attrs, genome.temporal_filter, "temporal_filter_type");
     setp!(attrs, genome.temporal_filter_width, "temporal_filter_width");
     setp!(attrs, genome.temporal_filter_exp, "temporal_filter_exp");

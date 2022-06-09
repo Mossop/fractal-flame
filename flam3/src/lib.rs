@@ -1,6 +1,7 @@
 pub mod file;
 pub(crate) mod logging;
 pub(crate) mod math;
+pub(crate) mod rect;
 pub mod render;
 pub(crate) mod utils;
 pub mod variations;
@@ -273,7 +274,7 @@ pub struct Genome {
     pub zoom: f64,
     pub spatial_supersample: u32,
     pub spatial_filter_radius: f64,
-    pub spatial_filter_select: SpatialFilter,
+    pub spatial_filter: SpatialFilter,
     pub temporal_filter: TemporalFilter,
     pub temporal_filter_width: f64,
     pub temporal_filter_exp: f64,
@@ -418,7 +419,7 @@ impl Default for Genome {
             zoom: Default::default(),
             spatial_supersample: 1,
             spatial_filter_radius: 0.5,
-            spatial_filter_select: Default::default(),
+            spatial_filter: Default::default(),
             temporal_filter: Default::default(),
             temporal_filter_width: 1.0,
             temporal_filter_exp: Default::default(),

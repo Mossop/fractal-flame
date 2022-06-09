@@ -124,7 +124,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     };
 
     // Spatial Filter kernel creation
-    let (filter, filter_width) = flam3_create_spatial_filter(&frame, field)?;
+    let spatial_filter = flam3_create_spatial_filter(&frame, field)?;
 
     //  batch filter
     //  may want to revisit this at some point
@@ -142,7 +142,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
        the number of additional rows of buckets we put at the edge so
        that the filter doesn't go off the edge
     */
-    let mut gutter_width = (filter_width.u32() - supersample) / 2;
+    let mut gutter_width = (spatial_filter.width().u32() - supersample) / 2;
 
     /*
        Check the size of the density estimation filter.
@@ -168,7 +168,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     let de_offset = if max_gnm_de_fw > gutter_width {
         let delta = max_gnm_de_fw - gutter_width;
         gutter_width = max_gnm_de_fw;
-        delta
+        delta.usize()
     } else {
         0
     };
@@ -515,10 +515,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
         let mut x = de_offset;
         for i in 0..image_width {
             let mut t = [0.0; 4];
-            for ii in 0..filter_width {
-                for jj in 0..filter_width {
-                    let k = filter[(ii + jj * filter_width).usize()];
-                    let ac = &mut accumulate[(x + ii + (y + jj) * fic.width).usize()];
+            for ii in 0..spatial_filter.width() {
+                for jj in 0..spatial_filter.height() {
+                    let k = spatial_filter[(ii, jj)];
+                    let ac = &mut accumulate[x + ii + (y + jj) * fic.width.usize()];
 
                     t[0] += k * ac[0].f64();
                     t[1] += k * ac[1].f64();
@@ -622,9 +622,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 p[pos..pos + bytes.len()].clone_from_slice(&bytes);
             }
 
-            x += supersample;
+            x += supersample.usize();
         }
-        y += supersample;
+        y += supersample.usize();
     }
 
     Ok(())
