@@ -1,16 +1,16 @@
 mod filters;
+mod ops;
 mod rect;
 mod rng;
 mod thread;
 mod variations;
-
-use std::fmt::Display;
 
 use image::RgbaImage;
 use rand::RngCore;
 
 use crate::math::{ln, pow};
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
+pub(crate) use ops::{Accumulator, Bucket, RenderOps, RenderOpsAtomicFloat};
 
 use self::{rect::render_rectangle, rng::Flam3Rng};
 
@@ -34,83 +34,6 @@ enum Field {
 }
 
 trait ClonableRng: RngCore + Clone {}
-
-trait RenderOps: Clone + Default {
-    type Bucket: PanicCast + Default + Display + Clone + Copy;
-    type Accumulator: PanicCast + Default + Display + Clone + Copy;
-
-    fn into_accumulator(val: f64) -> Self::Accumulator;
-    fn bucket_storage(nbuckets: usize) -> Vec<[Self::Bucket; 5]>;
-    fn accumulator_storage(nbuckets: usize) -> Vec<[Self::Accumulator; 4]>;
-    fn bump_no_overflow(dest: &mut [Self::Bucket; 5], delta: &[f64; 5]);
-    fn abump_no_overflow(dest: &mut [Self::Accumulator; 4], delta: &[f64; 4]);
-    fn add_c_to_accum(
-        acc: &mut [[Self::Accumulator; 4]],
-        i: u32,
-        ii: i32,
-        j: u32,
-        jj: i32,
-        wid: u32,
-        hgt: u32,
-        c: &[f64; 4],
-    );
-}
-
-#[derive(Clone, Default)]
-struct RenderOpsAtomicFloat {}
-
-impl RenderOps for RenderOpsAtomicFloat {
-    type Bucket = u32;
-    type Accumulator = f32;
-
-    fn bump_no_overflow(dest: &mut [Self::Bucket; 5], delta: &[f64; 5]) {
-        for (index, bucket) in dest.iter_mut().enumerate() {
-            let result = bucket.f64() + delta[index];
-            *bucket = if result >= u32::MAX as f64 {
-                u32::MAX
-            } else {
-                result as u32
-            };
-        }
-    }
-
-    fn abump_no_overflow(dest: &mut [Self::Accumulator; 4], delta: &[f64; 4]) {
-        for (index, bucket) in dest.iter_mut().enumerate() {
-            *bucket += delta[index].f32();
-        }
-    }
-
-    fn add_c_to_accum(
-        acc: &mut [[Self::Accumulator; 4]],
-        i: u32,
-        ii: i32,
-        j: u32,
-        jj: i32,
-        wid: u32,
-        hgt: u32,
-        c: &[f64; 4],
-    ) {
-        let y = j.i32() + jj;
-        let x = i.i32() + ii;
-        let width = wid.i32();
-        let height = hgt.i32();
-        if y >= 0 && y < height && x >= 0 && x < width {
-            Self::abump_no_overflow(&mut acc[(x + y * width).usize()], c);
-        }
-    }
-
-    fn bucket_storage(nbuckets: usize) -> Vec<[Self::Bucket; 5]> {
-        vec![[0; 5]; nbuckets]
-    }
-
-    fn accumulator_storage(nbuckets: usize) -> Vec<[Self::Accumulator; 4]> {
-        vec![[0.0; 4]; nbuckets]
-    }
-
-    fn into_accumulator(val: f64) -> Self::Accumulator {
-        val.f32()
-    }
-}
 
 #[derive(Clone)]
 struct Flam3Frame {

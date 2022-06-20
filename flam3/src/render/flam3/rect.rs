@@ -369,24 +369,16 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             for j in 0..fic.height {
                 for i in 0..fic.width {
                     let point_pos = (i + j * fic.width).usize();
-                    let mut c = [
-                        buckets[point_pos][0].f64(),
-                        buckets[point_pos][1].f64(),
-                        buckets[point_pos][2].f64(),
-                        buckets[point_pos][3].f64(),
-                    ];
+                    let mut pixel = buckets[point_pos].accumulator();
 
-                    if c[3] == 0.0 {
+                    if pixel.alpha == 0.0 {
                         continue;
                     }
 
-                    let ls = (k1 * ln!(1.0 + c[3] * k2)) / c[3];
-                    c[0] *= ls;
-                    c[1] *= ls;
-                    c[2] *= ls;
-                    c[3] *= ls;
+                    let ls = (k1 * ln!(1.0 + pixel.alpha * k2)) / pixel.alpha;
+                    pixel *= ls;
 
-                    Ops::abump_no_overflow(&mut accumulate[point_pos], &c);
+                    Ops::abump_no_overflow(&mut accumulate[point_pos], &pixel);
                 }
             }
         } else {
@@ -458,12 +450,12 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
         for j in 0..fic.height {
             for i in 0..fic.width {
-                let ac = &mut accumulate[(i + j * fic.width).usize()];
+                let accumulator = &mut accumulate[(i + j * fic.width).usize()];
 
-                let (alpha, ls) = if ac[3].f64() <= 0.0 {
+                let (alpha, ls) = if accumulator.alpha.f64() <= 0.0 {
                     (0.0, 0.0)
                 } else {
-                    let tmp = ac[3].f64() / PREFILTER_WHITE.f64();
+                    let tmp = accumulator.alpha.f64() / PREFILTER_WHITE.f64();
                     let mut alpha = flam3_calc_alpha(tmp, g, linrange);
                     let ls = vibrancy * 256.0 * alpha / tmp;
                     if alpha < 0.0 {
@@ -475,7 +467,11 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     (alpha, ls)
                 };
 
-                let t = [ac[0].f64(), ac[1].f64(), ac[2].f64()];
+                let t = [
+                    accumulator.red.f64(),
+                    accumulator.green.f64(),
+                    accumulator.blue.f64(),
+                ];
                 let newrgb = flam3_calc_newrgb(&t, ls, highpow);
 
                 let bg_color = background.as_raw::<[f64]>();
@@ -500,10 +496,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     }
 
                     //  Replace values in accumulation buffer with these new ones
-                    ac[rgbi] = Ops::into_accumulator(a);
+                    accumulator[rgbi] = Ops::into_accumulator(a);
                 }
 
-                ac[3] = Ops::into_accumulator(alpha);
+                accumulator.alpha = Ops::into_accumulator(alpha);
             }
         }
     }
@@ -520,10 +516,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     let k = spatial_filter[(ii, jj)];
                     let ac = &mut accumulate[x + ii + (y + jj) * fic.width.usize()];
 
-                    t[0] += k * ac[0].f64();
-                    t[1] += k * ac[1].f64();
-                    t[2] += k * ac[2].f64();
-                    t[3] += k * ac[3].f64();
+                    t[0] += k * ac.red.f64();
+                    t[1] += k * ac.green.f64();
+                    t[2] += k * ac.blue.f64();
+                    t[3] += k * ac.alpha.f64();
                 }
             }
 
