@@ -39,7 +39,7 @@ jobs:
         run: cargo check
 
       - name: Run tests
-        run: cargo test --release --features libm
+        run: cargo test --features libm
         continue-on-error: true
         env:
           RUSTFLAGS: -Cinstrument-coverage

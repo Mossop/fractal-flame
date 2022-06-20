@@ -1,144 +1,167 @@
 #[cfg(feature = "libm")]
-macro_rules! sin {
-    ($e:expr) => {
-        libm::sin($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! sin {
-    ($e:expr) => {
-        $e.sin()
-    };
+mod internal {
+    macro_rules! sin {
+        ($e:expr) => {
+            libm::sin($e)
+        };
+    }
+
+    macro_rules! sinh {
+        ($e:expr) => {
+            libm::sinh($e)
+        };
+    }
+
+    macro_rules! cos {
+        ($e:expr) => {
+            libm::cos($e)
+        };
+    }
+
+    macro_rules! acos {
+        ($e:expr) => {
+            libm::acos($e)
+        };
+    }
+
+    macro_rules! cosh {
+        ($e:expr) => {
+            libm::cosh($e)
+        };
+    }
+
+    macro_rules! tan {
+        ($e:expr) => {
+            libm::tan($e)
+        };
+    }
+
+    macro_rules! atan2 {
+        ($a:expr, $b:expr) => {
+            libm::atan2($a, $b)
+        };
+    }
+
+    macro_rules! sincos {
+        ($e:expr) => {
+            libm::sincos($e)
+        };
+    }
+
+    macro_rules! sqrt {
+        ($e:expr) => {
+            libm::sqrt($e)
+        };
+    }
+
+    macro_rules! exp {
+        ($e:expr) => {
+            libm::exp($e)
+        };
+    }
+
+    macro_rules! pow {
+        ($a:expr, $b:expr) => {
+            libm::pow($a, $b)
+        };
+    }
+
+    macro_rules! log10 {
+        ($e:expr) => {
+            libm::log10($e)
+        };
+    }
+
+    macro_rules! ln {
+        ($e:expr) => {
+            libm::log($e)
+        };
+    }
+
+    pub(crate) use {acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqrt, tan};
 }
 
-#[cfg(feature = "libm")]
-macro_rules! sinh {
-    ($e:expr) => {
-        libm::sinh($e)
-    };
-}
 #[cfg(not(feature = "libm"))]
-macro_rules! sinh {
-    ($e:expr) => {
-        $e.sinh()
-    };
-}
+mod internal {
+    macro_rules! sin {
+        ($e:expr) => {
+            $e.sin()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! cos {
-    ($e:expr) => {
-        libm::cos($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! cos {
-    ($e:expr) => {
-        $e.cos()
-    };
-}
+    macro_rules! sinh {
+        ($e:expr) => {
+            $e.sinh()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! acos {
-    ($e:expr) => {
-        libm::acos($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! acos {
-    ($e:expr) => {
-        $e.acos()
-    };
-}
+    macro_rules! cos {
+        ($e:expr) => {
+            $e.cos()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! cosh {
-    ($e:expr) => {
-        libm::cosh($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! cosh {
-    ($e:expr) => {
-        $e.cosh()
-    };
-}
+    macro_rules! acos {
+        ($e:expr) => {
+            $e.acos()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! tan {
-    ($e:expr) => {
-        libm::tan($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! tan {
-    ($e:expr) => {
-        $e.tan()
-    };
-}
+    macro_rules! cosh {
+        ($e:expr) => {
+            $e.cosh()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! atan2 {
-    ($a:expr, $b:expr) => {
-        libm::atan2($a, $b)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! atan2 {
-    ($a:expr, $b:expr) => {
-        $a.atan2($b)
-    };
-}
+    macro_rules! tan {
+        ($e:expr) => {
+            $e.tan()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! sincos {
-    ($e:expr) => {
-        libm::sincos($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! sincos {
-    ($e:expr) => {
-        $e.sin_cos()
-    };
-}
+    macro_rules! atan2 {
+        ($a:expr, $b:expr) => {
+            $a.atan2($b)
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! sqrt {
-    ($e:expr) => {
-        libm::sqrt($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! sqrt {
-    ($e:expr) => {
-        $e.sqrt()
-    };
-}
+    macro_rules! sincos {
+        ($e:expr) => {
+            $e.sin_cos()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! exp {
-    ($e:expr) => {
-        libm::exp($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! exp {
-    ($e:expr) => {
-        $e.exp()
-    };
-}
+    macro_rules! sqrt {
+        ($e:expr) => {
+            $e.sqrt()
+        };
+    }
 
-#[cfg(feature = "libm")]
-macro_rules! pow {
-    ($a:expr, $b:expr) => {
-        libm::pow($a, $b)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! pow {
-    ($a:expr, $b:expr) => {
-        $a.powf($b)
-    };
+    macro_rules! exp {
+        ($e:expr) => {
+            $e.exp()
+        };
+    }
+
+    macro_rules! pow {
+        ($a:expr, $b:expr) => {
+            $a.powf($b)
+        };
+    }
+
+    macro_rules! ln {
+        ($e:expr) => {
+            $e.ln()
+        };
+    }
+
+    macro_rules! log10 {
+        ($e:expr) => {
+            $e.log10()
+        };
+    }
+
+    pub(crate) use {acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqrt, tan};
 }
 
 macro_rules! sqr {
@@ -153,32 +176,7 @@ macro_rules! sum_sqr {
     };
 }
 
-#[cfg(feature = "libm")]
-macro_rules! log10 {
-    ($e:expr) => {
-        libm::log10($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! log10 {
-    ($e:expr) => {
-        $e.log10()
-    };
-}
-
-#[cfg(feature = "libm")]
-macro_rules! ln {
-    ($e:expr) => {
-        libm::log($e)
-    };
-}
-#[cfg(not(feature = "libm"))]
-macro_rules! ln {
-    ($e:expr) => {
-        $e.ln()
-    };
-}
-
-pub(crate) use {
-    acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqr, sqrt, sum_sqr, tan,
+pub(crate) use internal::{
+    acos, atan2, cos, cosh, exp, ln, log10, pow, sin, sincos, sinh, sqrt, tan,
 };
+pub(crate) use {sqr, sum_sqr};

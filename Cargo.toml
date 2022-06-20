@@ -3,3 +3,6 @@ members = [
     "flam3",
     "flam3-render"
 ]
+
+[profile.test]
+opt-level = 3
