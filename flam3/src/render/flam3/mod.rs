@@ -1,7 +1,7 @@
 mod filters;
-mod ops;
 mod rect;
 mod rng;
+mod storage;
 mod thread;
 mod variations;
 
@@ -10,7 +10,7 @@ use rand::RngCore;
 
 use crate::math::{ln, pow};
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
-pub(crate) use ops::{Accumulator, Bucket, RenderOps, RenderOpsAtomicFloat};
+pub(crate) use storage::{Accumulator, Bucket, RenderStorage, RenderStorageAtomicFloat};
 
 use self::{rect::render_rectangle, rng::Flam3Rng};
 
@@ -54,8 +54,6 @@ struct Flam3IterConstants {
     bounds: [f64; 4], //  Corner coords of viewable area
     rot: Affine,      //  Rotation transformation
     size: [f64; 2],
-    width: u32,
-    height: u32,
     ws0: f64,
     wb0s0: f64,
     hs1: f64,
@@ -79,8 +77,6 @@ impl Flam3IterConstants {
             bounds: Default::default(),
             rot: Default::default(),
             size: Default::default(),
-            width: Default::default(),
-            height: Default::default(),
             ws0: Default::default(),
             wb0s0: Default::default(),
             hs1: Default::default(),
@@ -116,8 +112,6 @@ struct Flam3ThreadHelper {
 }
 
 struct Flam3DeThreadHelper {
-    width: u32,
-    height: u32,
     supersample: u32,
     de: Flam3DeHelper,
     k1: f64,
@@ -135,13 +129,13 @@ pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage
     };
 
     match options.buffers {
-        Buffers::Int => render_internal::<RenderOpsAtomicFloat>(genome, options, rng),
-        Buffers::Float => render_internal::<RenderOpsAtomicFloat>(genome, options, rng),
-        Buffers::Double => render_internal::<RenderOpsAtomicFloat>(genome, options, rng),
+        Buffers::Int => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
+        Buffers::Float => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
+        Buffers::Double => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
     }
 }
 
-fn render_internal<Ops: RenderOps>(
+fn render_internal<Ops: RenderStorage>(
     genome: Genome,
     options: RenderOptions,
     rng: Flam3Rng,

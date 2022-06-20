@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut, MulAssign};
 
 use palette::Srgba;
 
-use crate::utils::PanicCast;
+use crate::{rect::Rect, utils::PanicCast};
 
 #[derive(Clone)]
 pub(crate) struct Bucket<T> {
@@ -99,7 +99,7 @@ impl<T> IndexMut<usize> for Accumulator<T> {
     }
 }
 
-pub(crate) trait RenderOps {
+pub(crate) trait RenderStorage {
     type BucketField: PanicCast + Default + Clone + Copy;
     type AccumulatorField: PanicCast + Default + Clone + Copy;
 
@@ -107,12 +107,15 @@ pub(crate) trait RenderOps {
     fn increase_accumulator(accumulator: &mut Self::AccumulatorField, delta: f64);
     fn into_accumulator(val: f64) -> Self::AccumulatorField;
 
-    fn bucket_storage(nbuckets: usize) -> Vec<Bucket<Self::BucketField>> {
-        vec![Default::default(); nbuckets]
+    fn bucket_storage(width: usize, height: usize) -> Rect<Bucket<Self::BucketField>> {
+        Rect::rectangle(width, height)
     }
 
-    fn accumulator_storage(nbuckets: usize) -> Vec<Accumulator<Self::AccumulatorField>> {
-        vec![Default::default(); nbuckets]
+    fn accumulator_storage(
+        width: usize,
+        height: usize,
+    ) -> Rect<Accumulator<Self::AccumulatorField>> {
+        Rect::rectangle(width, height)
     }
 
     fn bump_no_overflow(dest: &mut Bucket<Self::BucketField>, color: Srgba<f64>, logvis: f64) {
@@ -134,28 +137,26 @@ pub(crate) trait RenderOps {
     }
 
     fn add_c_to_accum(
-        acc: &mut [Accumulator<Self::AccumulatorField>],
-        i: u32,
+        acc: &mut Rect<Accumulator<Self::AccumulatorField>>,
+        i: usize,
         ii: i32,
-        j: u32,
+        j: usize,
         jj: i32,
-        wid: u32,
-        hgt: u32,
         delta: &Accumulator<f64>,
     ) {
         let y = j.i32() + jj;
         let x = i.i32() + ii;
-        let width = wid.i32();
-        let height = hgt.i32();
+        let width = acc.width().i32();
+        let height = acc.height().i32();
         if y >= 0 && y < height && x >= 0 && x < width {
-            Self::abump_no_overflow(&mut acc[(x + y * width).usize()], delta);
+            Self::abump_no_overflow(&mut acc[(x.usize(), y.usize())], delta);
         }
     }
 }
 
-pub struct RenderOpsAtomicFloat {}
+pub struct RenderStorageAtomicFloat {}
 
-impl RenderOps for RenderOpsAtomicFloat {
+impl RenderStorage for RenderStorageAtomicFloat {
     type BucketField = u32;
     type AccumulatorField = f32;
 

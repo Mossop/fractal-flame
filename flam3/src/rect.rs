@@ -35,7 +35,7 @@ impl<T> Rect<T> {
     }
 }
 
-impl<T: Copy> Rect<T> {
+impl<T: Clone> Rect<T> {
     pub fn new(width: usize, height: usize, initial: T) -> Rect<T> {
         Rect {
             width,
@@ -44,7 +44,7 @@ impl<T: Copy> Rect<T> {
     }
 }
 
-impl<T: Default + Copy> Rect<T> {
+impl<T: Default + Clone> Rect<T> {
     pub fn square(size: usize) -> Rect<T> {
         Self::rectangle(size, size)
     }
@@ -66,19 +66,5 @@ impl<T> IndexMut<(usize, usize)> for Rect<T> {
     fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut T {
         let index = self.buffer_index(x, y);
         &mut (self.buffer_mut()[index])
-    }
-}
-
-impl<T> Index<usize> for Rect<T> {
-    type Output = T;
-
-    fn index(&self, idx: usize) -> &T {
-        self.buffer.index(idx)
-    }
-}
-
-impl<T> IndexMut<usize> for Rect<T> {
-    fn index_mut(&mut self, idx: usize) -> &mut T {
-        self.buffer.index_mut(idx)
     }
 }

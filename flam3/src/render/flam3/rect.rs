@@ -13,7 +13,7 @@ use super::{
     filters::{create_spatial_filter, flam3_create_de_filters, flam3_create_temporal_filter},
     flam3_interpolate,
     thread::{de_thread, iter_thread},
-    Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderOps,
+    Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderStorage,
 };
 
 const WHITE_LEVEL: u32 = 255;
@@ -91,7 +91,7 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
     newrgb
 }
 
-pub(super) fn render_rectangle<Ops: RenderOps>(
+pub(super) fn render_rectangle<S: RenderStorage>(
     mut frame: Flam3Frame,
     mut buffer: &mut [u8],
     field: Field,
@@ -176,12 +176,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     let mut fic = Flam3IterConstants::new(frame.clone());
 
     //  Allocate the space required to render the image
-    fic.height = supersample * image_height + 2 * gutter_width;
-    fic.width = supersample * image_width + 2 * gutter_width;
+    let storage_width = supersample * image_width + 2 * gutter_width;
+    let storage_height = supersample * image_height + 2 * gutter_width;
 
-    let nbuckets = (fic.width * fic.height).usize();
-    let mut buckets = Ops::bucket_storage(nbuckets);
-    let mut accumulate = Ops::accumulator_storage(nbuckets);
+    let mut accumulate = S::accumulator_storage(storage_width.usize(), storage_height.usize());
 
     //  Batch loop - outermost
     for batch_num in 0..num_batches {
@@ -189,7 +187,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
         let mut sample_density = 0.0;
         let de_time = frame.time + temporal_deltas[(batch_num * num_temporal_samples).usize()];
 
-        buckets.fill(Default::default());
+        let mut buckets = S::bucket_storage(storage_width.usize(), storage_height.usize());
 
         //  interpolate and get a control point
         //  ONLY FOR DENSITY FILTER WIDTH PURPOSES
@@ -295,9 +293,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             ]
             .into();
 
-            fic.ws0 = fic.width.f64() * fic.size[0];
+            fic.ws0 = storage_width.f64() * fic.size[0];
             fic.wb0s0 = fic.ws0 * fic.bounds[0];
-            fic.hs1 = fic.height.f64() * fic.size[1];
+            fic.hs1 = storage_height.f64() * fic.size[1];
             fic.hb1s1 = fic.hs1 * fic.bounds[1];
 
             //  number of samples is based only on the output image size
@@ -328,7 +326,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
             for (_index, helper) in fth.drain(..).enumerate() {
                 // TODO actually use threads
-                iter_thread::<Ops>(
+                iter_thread::<S>(
                     helper,
                     &mut buckets,
                     state!(run_state, {
@@ -366,10 +364,9 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                 * sumfilt);
 
         if de.max_filter_index == 0 {
-            for j in 0..fic.height {
-                for i in 0..fic.width {
-                    let point_pos = (i + j * fic.width).usize();
-                    let mut pixel = buckets[point_pos].accumulator();
+            for j in 0..buckets.height() {
+                for i in 0..buckets.width() {
+                    let mut pixel = buckets[(i, j)].accumulator();
 
                     if pixel.alpha == 0.0 {
                         continue;
@@ -378,11 +375,11 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     let ls = (k1 * ln!(1.0 + pixel.alpha * k2)) / pixel.alpha;
                     pixel *= ls;
 
-                    Ops::abump_no_overflow(&mut accumulate[point_pos], &pixel);
+                    S::abump_no_overflow(&mut accumulate[(i, j)], &pixel);
                 }
             }
         } else {
-            let myspan = fic.height - 2 * (supersample - 1) + 1;
+            let myspan = buckets.height().u32() - 2 * (supersample - 1) + 1;
             let swath = myspan / frame.num_threads.u32();
 
             //  Create the de helper structures
@@ -403,7 +400,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     //  Normal case
                     start_row = i.u32() * swath;
                     if i == frame.num_threads - 1 {
-                        end_row = fic.height.i32(); //myspan.i32();
+                        end_row = buckets.height().i32(); //myspan.i32();
                     } else {
                         end_row = ((i.u32() + 1) * swath).i32();
                     }
@@ -411,8 +408,6 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
                 //  Set up the contents of the helper structure
                 deth.push(Flam3DeThreadHelper {
-                    width: fic.width,
-                    height: fic.height,
                     supersample,
                     de: de.clone(),
                     k1,
@@ -425,7 +420,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
 
             for thread_helper in deth {
                 // TODO Actually use threads
-                de_thread::<Ops>(thread_helper, &buckets, &mut accumulate);
+                de_thread::<S>(thread_helper, &buckets, &mut accumulate);
             }
         }
     }
@@ -443,14 +438,14 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     background.blue /= vib_gam_n / 256.0;
 
     //  If we're in the early clip mode, perform this first step to
-    //  apply the gamma correction and clipping before the spat filt
+    //  apply the gamma correction and clipping before the spatial filter
 
     if frame.earlyclip {
         log::trace!("Applying gamma correction and clipping");
 
-        for j in 0..fic.height {
-            for i in 0..fic.width {
-                let accumulator = &mut accumulate[(i + j * fic.width).usize()];
+        for j in 0..accumulate.height() {
+            for i in 0..accumulate.width() {
+                let accumulator = &mut accumulate[(i, j)];
 
                 let (alpha, ls) = if accumulator.alpha.f64() <= 0.0 {
                     (0.0, 0.0)
@@ -496,10 +491,10 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
                     }
 
                     //  Replace values in accumulation buffer with these new ones
-                    accumulator[rgbi] = Ops::into_accumulator(a);
+                    accumulator[rgbi] = S::into_accumulator(a);
                 }
 
-                accumulator.alpha = Ops::into_accumulator(alpha);
+                accumulator.alpha = S::into_accumulator(alpha);
             }
         }
     }
@@ -514,7 +509,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
             for ii in 0..spatial_filter.width() {
                 for jj in 0..spatial_filter.height() {
                     let k = spatial_filter[(ii, jj)];
-                    let ac = &mut accumulate[x + ii + (y + jj) * fic.width.usize()];
+                    let ac = &mut accumulate[(x + ii, y + jj)];
 
                     t[0] += k * ac.red.f64();
                     t[1] += k * ac.green.f64();

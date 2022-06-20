@@ -5,12 +5,13 @@ use uuid::Uuid;
 
 use crate::logging::{state, RunState};
 use crate::math::{ln, pow, sqr};
+use crate::rect::Rect;
 use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
 
 use super::{
     rng::Flam3Rng,
     variations::{apply_xform, VariationPrecalculations},
-    Flam3DeThreadHelper, Flam3ThreadHelper, RenderOps, TransformSelector,
+    Flam3DeThreadHelper, Flam3ThreadHelper, RenderStorage, TransformSelector,
 };
 use super::{Accumulator, Bucket};
 
@@ -111,9 +112,9 @@ fn flam3_iterate(
     bad_iterations
 }
 
-pub(super) fn iter_thread<Ops: RenderOps>(
+pub(super) fn iter_thread<S: RenderStorage>(
     mut fthp: Flam3ThreadHelper,
-    buckets: &mut [Bucket<Ops::BucketField>],
+    buckets: &mut Rect<Bucket<S::BucketField>>,
     run_state: RunState,
 ) -> Result<(), String> {
     log::trace!("Starting iteration thread");
@@ -183,9 +184,6 @@ pub(super) fn iter_thread<Ops: RenderOps>(
                     continue;
                 }
 
-                let start = (ficp.ws0 * p0 - ficp.wb0s0).usize()
-                    + ficp.width.usize() * (ficp.hs1 * p1 - ficp.hb1s1).usize();
-
                 let dbl_index0 = p[2] * cmap_size.f64();
                 let color_index0 = dbl_index0.i32();
 
@@ -215,7 +213,14 @@ pub(super) fn iter_thread<Ops: RenderOps>(
                     ficp.dmap[cindex]
                 };
 
-                Ops::bump_no_overflow(&mut buckets[start], interpcolor, logvis);
+                S::bump_no_overflow(
+                    &mut buckets[(
+                        (ficp.ws0 * p0 - ficp.wb0s0).usize(),
+                        (ficp.hs1 * p1 - ficp.hb1s1).usize(),
+                    )],
+                    interpcolor,
+                    logvis,
+                );
             }
         }
     }
@@ -227,45 +232,41 @@ pub(super) fn iter_thread<Ops: RenderOps>(
     Ok(())
 }
 
-pub(super) fn de_thread<Ops: RenderOps>(
+pub(super) fn de_thread<S: RenderStorage>(
     dthp: Flam3DeThreadHelper,
-    buckets: &[Bucket<Ops::BucketField>],
-    accumulate: &mut [Accumulator<Ops::AccumulatorField>],
+    buckets: &Rect<Bucket<S::BucketField>>,
+    accumulate: &mut Rect<Accumulator<S::AccumulatorField>>,
 ) {
     let supersample = dthp.supersample;
-    let ss = (supersample.f64() / 2.0).floor().i32();
+    let ss = (supersample.f64() / 2.0).floor().usize();
     let scf = (supersample & 1) == 0;
     let scfact = sqr!(supersample.f64() / (supersample.f64() + 1.0));
-    let wid = dthp.width;
-    let hig = dthp.height;
-    let str = (supersample - 1) + dthp.start_row;
-    let enr = ((supersample - 1).i32() + dthp.end_row).u32();
+    let str = ((supersample - 1) + dthp.start_row).usize();
+    let enr = ((supersample - 1).i32() + dthp.end_row).usize();
 
     log::trace!(
         "Starting density estimation thread for rows {} to {}, width={}, height={}",
         str,
         enr,
-        wid,
-        hig
+        accumulate.width(),
+        accumulate.height()
     );
 
     /* Density estimation code */
     for j in str..enr {
-        for i in supersample - 1..wid - (supersample - 1) {
+        for i in supersample.usize() - 1..accumulate.width() - (supersample.usize() - 1) {
             let mut f_select = 0.0;
-            let index = (i + j * wid).usize();
 
             /* Don't do anything if there's no hits here */
-            if buckets[index].alpha.f64() == 0.0 || buckets[index].density.f64() == 0.0 {
+            if buckets[(i, j)].alpha.f64() == 0.0 || buckets[(i, j)].density.f64() == 0.0 {
                 continue;
             }
 
             /* Count density in ssxss area   */
             /* Scale if OS>1 for equal iters */
-            for ii in -ss..=ss {
-                for jj in -ss..=ss {
-                    let index = ((i.i32() + ii) + (j.i32() + jj) * wid.i32()).usize();
-                    f_select += buckets[index].density.f64();
+            for ii in i - ss..=i + ss {
+                for jj in j - ss..=j + ss {
+                    f_select += buckets[(ii, jj)].density.f64();
                 }
             }
 
@@ -291,8 +292,7 @@ pub(super) fn de_thread<Ops: RenderOps>(
 
             let arr_filt_width = (dthp.de.filter_widths[f_select_int.usize()]).ceil().u32() - 1;
 
-            let bucket_index = (i + j * wid).usize();
-            let current_pixel = buckets[bucket_index].accumulator();
+            let current_pixel = buckets[(i, j)].accumulator();
 
             for jj in 0..=arr_filt_width.i32() {
                 for ii in 0..=jj {
@@ -311,26 +311,26 @@ pub(super) fn de_thread<Ops: RenderOps>(
                     pixel *= ls;
 
                     if jj == 0 && ii == 0 {
-                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &pixel);
+                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
                     } else if ii == 0 {
-                        Ops::add_c_to_accum(accumulate, i, jj, j, 0, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -jj, j, 0, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, 0, j, jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, 0, j, -jj, wid, hig, &pixel);
+                        S::add_c_to_accum(accumulate, i, jj, j, 0, &pixel);
+                        S::add_c_to_accum(accumulate, i, -jj, j, 0, &pixel);
+                        S::add_c_to_accum(accumulate, i, 0, j, jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, 0, j, -jj, &pixel);
                     } else if jj == ii {
-                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -ii, j, jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, ii, j, -jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -ii, j, -jj, wid, hig, &pixel);
+                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, -ii, j, jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, ii, j, -jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, -ii, j, -jj, &pixel);
                     } else {
-                        Ops::add_c_to_accum(accumulate, i, ii, j, jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -ii, j, jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, ii, j, -jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -ii, j, -jj, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, jj, j, ii, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -jj, j, ii, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, jj, j, -ii, wid, hig, &pixel);
-                        Ops::add_c_to_accum(accumulate, i, -jj, j, -ii, wid, hig, &pixel);
+                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, -ii, j, jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, ii, j, -jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, -ii, j, -jj, &pixel);
+                        S::add_c_to_accum(accumulate, i, jj, j, ii, &pixel);
+                        S::add_c_to_accum(accumulate, i, -jj, j, ii, &pixel);
+                        S::add_c_to_accum(accumulate, i, jj, j, -ii, &pixel);
+                        S::add_c_to_accum(accumulate, i, -jj, j, -ii, &pixel);
                     }
 
                     f_coef_idx += 1;
