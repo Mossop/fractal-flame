@@ -213,7 +213,7 @@ pub(super) fn iter_thread<S: RenderStorage>(
                     ficp.dmap[cindex]
                 };
 
-                S::bump_no_overflow(
+                S::increase_bucket(
                     &mut buckets[(
                         (ficp.ws0 * p0 - ficp.wb0s0).usize(),
                         (ficp.hs1 * p1 - ficp.hb1s1).usize(),

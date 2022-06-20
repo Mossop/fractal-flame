@@ -4,6 +4,8 @@ use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
 use crate::logging::state;
 use crate::math::{cos, ln, pow, sin, sqr};
+use crate::rect::Rect;
+use crate::render::flam3::{Accumulator, Bucket};
 use crate::{
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
     utils::PanicCast,
@@ -179,7 +181,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
     let storage_width = supersample * image_width + 2 * gutter_width;
     let storage_height = supersample * image_height + 2 * gutter_width;
 
-    let mut accumulate = S::accumulator_storage(storage_width.usize(), storage_height.usize());
+    let mut accumulate = Rect::<Accumulator<S::AccumulatorField>>::rectangle(
+        storage_width.usize(),
+        storage_height.usize(),
+    );
 
     //  Batch loop - outermost
     for batch_num in 0..num_batches {
@@ -187,7 +192,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         let mut sample_density = 0.0;
         let de_time = frame.time + temporal_deltas[(batch_num * num_temporal_samples).usize()];
 
-        let mut buckets = S::bucket_storage(storage_width.usize(), storage_height.usize());
+        let mut buckets = Rect::<Bucket<S::BucketField>>::rectangle(
+            storage_width.usize(),
+            storage_height.usize(),
+        );
 
         //  interpolate and get a control point
         //  ONLY FOR DENSITY FILTER WIDTH PURPOSES
@@ -375,7 +383,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                     let ls = (k1 * ln!(1.0 + pixel.alpha * k2)) / pixel.alpha;
                     pixel *= ls;
 
-                    S::abump_no_overflow(&mut accumulate[(i, j)], &pixel);
+                    S::increase_accumulator(&mut accumulate[(i, j)], &pixel);
                 }
             }
         } else {

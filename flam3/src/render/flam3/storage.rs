@@ -100,40 +100,29 @@ impl<T> IndexMut<usize> for Accumulator<T> {
 }
 
 pub(crate) trait RenderStorage {
-    type BucketField: PanicCast + Default + Clone + Copy;
-    type AccumulatorField: PanicCast + Default + Clone + Copy;
+    type BucketField: PanicCast + Default + Copy;
+    type AccumulatorField: PanicCast + Default + Copy;
 
-    fn increase_bucket(bucket: &mut Self::BucketField, delta: f64);
-    fn increase_accumulator(accumulator: &mut Self::AccumulatorField, delta: f64);
+    fn increase_bucket_field(bucket: &mut Self::BucketField, delta: f64);
+    fn increase_accumulator_field(accumulator: &mut Self::AccumulatorField, delta: f64);
     fn into_accumulator(val: f64) -> Self::AccumulatorField;
 
-    fn bucket_storage(width: usize, height: usize) -> Rect<Bucket<Self::BucketField>> {
-        Rect::rectangle(width, height)
+    fn increase_bucket(dest: &mut Bucket<Self::BucketField>, color: Srgba<f64>, logvis: f64) {
+        Self::increase_bucket_field(&mut dest.red, color.red * logvis);
+        Self::increase_bucket_field(&mut dest.green, color.green * logvis);
+        Self::increase_bucket_field(&mut dest.blue, color.blue * logvis);
+        Self::increase_bucket_field(&mut dest.alpha, color.alpha * logvis);
+        Self::increase_bucket_field(&mut dest.density, logvis);
     }
 
-    fn accumulator_storage(
-        width: usize,
-        height: usize,
-    ) -> Rect<Accumulator<Self::AccumulatorField>> {
-        Rect::rectangle(width, height)
-    }
-
-    fn bump_no_overflow(dest: &mut Bucket<Self::BucketField>, color: Srgba<f64>, logvis: f64) {
-        Self::increase_bucket(&mut dest.red, color.red * logvis);
-        Self::increase_bucket(&mut dest.green, color.green * logvis);
-        Self::increase_bucket(&mut dest.blue, color.blue * logvis);
-        Self::increase_bucket(&mut dest.alpha, color.alpha * logvis);
-        Self::increase_bucket(&mut dest.density, logvis);
-    }
-
-    fn abump_no_overflow(
+    fn increase_accumulator(
         dest: &mut Accumulator<Self::AccumulatorField>,
         pixel_delta: &Accumulator<f64>,
     ) {
-        Self::increase_accumulator(&mut dest.red, pixel_delta.red);
-        Self::increase_accumulator(&mut dest.green, pixel_delta.green);
-        Self::increase_accumulator(&mut dest.blue, pixel_delta.blue);
-        Self::increase_accumulator(&mut dest.alpha, pixel_delta.alpha);
+        Self::increase_accumulator_field(&mut dest.red, pixel_delta.red);
+        Self::increase_accumulator_field(&mut dest.green, pixel_delta.green);
+        Self::increase_accumulator_field(&mut dest.blue, pixel_delta.blue);
+        Self::increase_accumulator_field(&mut dest.alpha, pixel_delta.alpha);
     }
 
     fn add_c_to_accum(
@@ -149,7 +138,7 @@ pub(crate) trait RenderStorage {
         let width = acc.width().i32();
         let height = acc.height().i32();
         if y >= 0 && y < height && x >= 0 && x < width {
-            Self::abump_no_overflow(&mut acc[(x.usize(), y.usize())], delta);
+            Self::increase_accumulator(&mut acc[(x.usize(), y.usize())], delta);
         }
     }
 }
@@ -160,11 +149,11 @@ impl RenderStorage for RenderStorageAtomicFloat {
     type BucketField = u32;
     type AccumulatorField = f32;
 
-    fn increase_bucket(bucket: &mut Self::BucketField, delta: f64) {
+    fn increase_bucket_field(bucket: &mut Self::BucketField, delta: f64) {
         *bucket = bucket.saturating_add(delta as u32)
     }
 
-    fn increase_accumulator(acc: &mut Self::AccumulatorField, delta: f64) {
+    fn increase_accumulator_field(acc: &mut Self::AccumulatorField, delta: f64) {
         *acc += delta.f32();
     }
 
