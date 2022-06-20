@@ -266,15 +266,18 @@ pub struct Genome {
 
     /// The size of the generated image in pixels.
     pub size: Dimension,
-    /// The center of the image, coordinates must be in the range [-1,1]
+    /// The center of the image, coordinates must be in the range [-1,1].
     pub center: Coordinate,
+    /// The center point of any rotation.
     pub rot_center: Coordinate,
-    pub pixels_per_unit: f64,
+    /// Rotation in degrees.
     pub rotate: f64,
+    pub pixels_per_unit: f64,
     pub zoom: f64,
+    /// The number of points to capture per pixel
     pub spatial_supersample: u32,
-    pub spatial_filter_radius: f64,
     pub spatial_filter: SpatialFilter,
+    pub spatial_filter_radius: f64,
     pub temporal_filter: TemporalFilter,
     pub temporal_filter_width: f64,
     pub temporal_filter_exp: f64,

@@ -10,7 +10,7 @@ const FLAM3_MITCHELL_B: f64 = 1.0 / 3.0;
 const FLAM3_MITCHELL_C: f64 = 1.0 / 3.0;
 pub const DE_THRESH: u32 = 100;
 
-fn flam3_spatial_support(spatial_filter: SpatialFilter) -> f64 {
+fn filter_scale(spatial_filter: SpatialFilter) -> f64 {
     match spatial_filter {
         SpatialFilter::Gaussian => 1.5,
         SpatialFilter::Hermite => 1.0,
@@ -233,17 +233,14 @@ fn normalize_vector(v: &mut Rect<f64>) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn flam3_create_spatial_filter(
-    frame: &Flam3Frame,
-    field: Field,
-) -> Result<Rect<f64>, String> {
+pub(super) fn create_spatial_filter(frame: &Flam3Frame, field: Field) -> Result<Rect<f64>, String> {
     let spatial_filter = frame.genomes[0].spatial_filter;
     let supersample = frame.genomes[0].spatial_supersample;
     let filter_radius = frame.genomes[0].spatial_filter_radius;
     let aspect_ratio = frame.pixel_aspect_ratio;
-    let sf_supp = flam3_spatial_support(spatial_filter);
+    let scale = filter_scale(spatial_filter);
 
-    let fw = 2.0 * sf_supp * supersample.f64() * filter_radius / aspect_ratio;
+    let fw = 2.0 * scale * supersample.f64() * filter_radius / aspect_ratio;
     let mut fwidth = fw.usize() + 1;
 
     /* Make sure the filter kernel has same parity as supersample */
@@ -253,18 +250,19 @@ pub(super) fn flam3_create_spatial_filter(
 
     /* Calculate the coordinate scaling factor for the kernel values */
     let adjust = if fw > 0.0 {
-        sf_supp * fwidth.f64() / fw
+        scale * fwidth.f64() / fw
     } else {
         1.0
     };
 
-    let mut filter = Rect::default(fwidth, fwidth);
+    let mut filter = Rect::square(fwidth);
 
     /* fill in the coefs */
     for i in 0..fwidth {
+        let ii = ((2 * i + 1).f64() / fwidth.f64() - 1.0) * adjust;
+
         for j in 0..fwidth {
             /* Calculate the function inputs for the kernel function */
-            let ii = ((2 * i + 1).f64() / fwidth.f64() - 1.0) * adjust;
             let mut jj = ((2 * j + 1).f64() / fwidth.f64() - 1.0) * adjust;
 
             /* Scale for scanlines */
@@ -335,8 +333,7 @@ pub fn flam3_create_temporal_filter(
                 /* Gaussian */
                 *filt = flam3_spatial_filter(
                     SpatialFilter::Gaussian,
-                    flam3_spatial_support(SpatialFilter::Gaussian) * (i.f64() - halfsteps).abs()
-                        / halfsteps,
+                    filter_scale(SpatialFilter::Gaussian) * (i.f64() - halfsteps).abs() / halfsteps,
                 );
                 /* Keep the max */
                 if *filt > maxfilt {
@@ -452,7 +449,7 @@ pub(super) fn flam3_create_de_filters(
                     /* Gaussian */
                     de_filt_sum += flam3_spatial_filter(
                         SpatialFilter::Gaussian,
-                        flam3_spatial_support(SpatialFilter::Gaussian) * de_filt_d,
+                        filter_scale(SpatialFilter::Gaussian) * de_filt_d,
                     );
 
                     /* Epanichnikov */
@@ -475,7 +472,7 @@ pub(super) fn flam3_create_de_filters(
                     /* Gaussian */
                     de.filter_coefs[filter_coef_idx.usize()] = flam3_spatial_filter(
                         SpatialFilter::Gaussian,
-                        flam3_spatial_support(SpatialFilter::Gaussian) * de_filt_d,
+                        filter_scale(SpatialFilter::Gaussian) * de_filt_d,
                     ) / de_filt_sum;
 
                     /* Epanichnikov */

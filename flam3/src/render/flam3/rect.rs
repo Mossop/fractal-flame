@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    filters::{flam3_create_de_filters, flam3_create_spatial_filter, flam3_create_temporal_filter},
+    filters::{create_spatial_filter, flam3_create_de_filters, flam3_create_temporal_filter},
     flam3_interpolate,
     thread::{de_thread, iter_thread},
     Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderOps,
@@ -124,7 +124,7 @@ pub(super) fn render_rectangle<Ops: RenderOps>(
     };
 
     // Spatial Filter kernel creation
-    let spatial_filter = flam3_create_spatial_filter(&frame, field)?;
+    let spatial_filter = create_spatial_filter(&frame, field)?;
 
     //  batch filter
     //  may want to revisit this at some point

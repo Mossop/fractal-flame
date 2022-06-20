@@ -35,12 +35,22 @@ impl<T> Rect<T> {
     }
 }
 
-impl<T: Default + Clone> Rect<T> {
-    pub fn default(width: usize, height: usize) -> Rect<T> {
+impl<T: Copy> Rect<T> {
+    pub fn new(width: usize, height: usize, initial: T) -> Rect<T> {
         Rect {
             width,
-            buffer: vec![Default::default(); width * height],
+            buffer: vec![initial; width * height],
         }
+    }
+}
+
+impl<T: Default + Copy> Rect<T> {
+    pub fn square(size: usize) -> Rect<T> {
+        Self::rectangle(size, size)
+    }
+
+    pub fn rectangle(width: usize, height: usize) -> Rect<T> {
+        Self::new(width, height, Default::default())
     }
 }
 
