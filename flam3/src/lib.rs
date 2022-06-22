@@ -1,5 +1,4 @@
 pub mod file;
-pub(crate) mod logging;
 pub(crate) mod math;
 pub(crate) mod rect;
 pub mod render;

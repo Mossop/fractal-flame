@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use palette::ComponentWise;
 use uuid::Uuid;
 
-use crate::logging::{state, RunState};
 use crate::math::{ln, pow, sqr};
 use crate::rect::Rect;
 use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
@@ -40,7 +39,6 @@ fn flam3_iterate(
     samples: &mut [f64],
     selector: &mut TransformSelector,
     rng: &mut Flam3Rng,
-    run_state: RunState,
 ) -> u32 {
     let mut consecutive_failures = 0;
     let mut bad_iterations = 0;
@@ -55,17 +53,7 @@ fn flam3_iterate(
         let precalc = precalcs.get(xform);
 
         let mut q = [0.0; 4];
-        if !apply_xform(
-            xform,
-            &p,
-            &mut q,
-            precalc,
-            rng,
-            state!(run_state, {
-                state: "xform",
-                iteration: iteration,
-            }),
-        ) {
+        if !apply_xform(xform, &p, &mut q, precalc, rng) {
             consecutive_failures += 1;
             bad_iterations += 1;
             if consecutive_failures < 5 {
@@ -83,17 +71,7 @@ fn flam3_iterate(
         if let Some(ref xform) = cp.final_transform {
             if xform.opacity == 1.0 || rng.isaac_01() < xform.opacity {
                 let precalc = precalcs.get(xform);
-                apply_xform(
-                    xform,
-                    &p,
-                    &mut q,
-                    precalc,
-                    rng,
-                    state!(run_state, {
-                        state: "finalxform",
-                        iteration: iteration,
-                    }),
-                );
+                apply_xform(xform, &p, &mut q, precalc, rng);
                 /* Keep the opacity from the original xform */
                 q[3] = p[3];
             }
@@ -115,7 +93,6 @@ fn flam3_iterate(
 pub(super) fn iter_thread<S: RenderStorage>(
     mut fthp: Flam3ThreadHelper,
     buckets: &mut Rect<Bucket<S::BucketField>>,
-    run_state: RunState,
 ) -> Result<(), String> {
     log::trace!("Starting iteration thread");
     let ficp = &mut fthp.fic;
@@ -152,9 +129,6 @@ pub(super) fn iter_thread<S: RenderStorage>(
             &mut iter_storage,
             &mut xform_distrib,
             &mut fthp.rng,
-            state!(run_state, {
-                sub_batch: sub_batch,
-            }),
         );
 
         /* Add the badcount to the counter */
