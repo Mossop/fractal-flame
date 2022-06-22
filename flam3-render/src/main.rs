@@ -20,6 +20,9 @@ struct Args {
 
     #[clap(long)]
     seed: Option<String>,
+
+    #[clap(long)]
+    earlyclip: bool,
 }
 
 fn make_single_name(out: &Option<String>) -> String {
@@ -63,6 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             genome,
             RenderOptions {
                 isaac_seed: args.seed.clone(),
+                earlyclip: args.earlyclip,
                 ..Default::default()
             },
         )?;
