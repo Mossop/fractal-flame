@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use crate::math::{cos, exp, pow, sin, sqr, sqrt, sum_sqr};
 use crate::rect::Rect;
-use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilter};
+use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilterType};
 
 use super::{Field, Flam3DeHelper, Flam3Frame};
 
@@ -283,83 +283,114 @@ pub(super) fn create_spatial_filter(frame: &Flam3Frame, field: Field) -> Result<
     Ok(filter)
 }
 
-pub fn flam3_create_temporal_filter(
-    num_steps: usize,
-    filter_type: TemporalFilter,
-    filter_exp: f64,
-    filter_width: f64,
-) -> Result<(f64, Vec<f64>, Vec<f64>), String> {
-    let mut maxfilt = 0.0;
-    let mut sumfilt = 0.0;
+pub struct TemporalFilter {
+    pub sumfilt: f64,
+    num_temporal_samples: u32,
+    filter: Vec<f64>,
+    deltas: Vec<f64>,
+}
 
-    /* Allocate memory - this must be freed in the calling routine! */
-    let mut deltas = vec![0.0; num_steps];
-    let mut filter = vec![0.0; num_steps];
+impl TemporalFilter {
+    pub fn new(
+        filter_type: TemporalFilterType,
+        filter_exp: f64,
+        filter_width: f64,
+        num_batches: u32,
+        num_temporal_samples: u32,
+    ) -> TemporalFilter {
+        let num_steps = (num_batches * num_temporal_samples).usize();
 
-    /* Deal with only one step */
-    if num_steps == 1 {
-        deltas[0] = 0.0;
-        filter[0] = 1.0;
-        return Ok((1.0, filter, deltas));
-    }
+        let mut maxfilt = 0.0;
+        let mut sumfilt = 0.0;
 
-    /* Define the temporal deltas */
-    for (i, delta) in deltas.iter_mut().enumerate() {
-        *delta = (i.f64() / (num_steps.f64() - 1.0) - 0.5) * filter_width;
-    }
+        /* Allocate memory - this must be freed in the calling routine! */
+        let mut deltas = vec![0.0; num_steps];
+        let mut filter = vec![0.0; num_steps];
 
-    /* Define the filter coefs */
-    match filter_type {
-        TemporalFilter::Exp => {
-            for (i, filt) in filter.iter_mut().enumerate() {
-                let slpx = if filter_exp >= 0.0 {
-                    (i.f64() + 1.0) / num_steps.f64()
-                } else {
-                    (num_steps - i).f64() / num_steps.f64()
-                };
+        /* Deal with only one step */
+        if num_steps == 1 {
+            deltas[0] = 0.0;
+            filter[0] = 1.0;
+            return TemporalFilter {
+                sumfilt: 1.0,
+                num_temporal_samples,
+                filter,
+                deltas,
+            };
+        }
 
-                /* Scale the color based on these values */
-                *filt = pow!(slpx, filter_exp.abs());
+        /* Define the temporal deltas */
+        for (i, delta) in deltas.iter_mut().enumerate() {
+            *delta = (i.f64() / (num_steps.f64() - 1.0) - 0.5) * filter_width;
+        }
 
-                /* Keep the max */
-                if *filt > maxfilt {
-                    maxfilt = *filt;
+        /* Define the filter coefs */
+        match filter_type {
+            TemporalFilterType::Exp => {
+                for (i, filt) in filter.iter_mut().enumerate() {
+                    let slpx = if filter_exp >= 0.0 {
+                        (i.f64() + 1.0) / num_steps.f64()
+                    } else {
+                        (num_steps - i).f64() / num_steps.f64()
+                    };
+
+                    /* Scale the color based on these values */
+                    *filt = pow!(slpx, filter_exp.abs());
+
+                    /* Keep the max */
+                    if *filt > maxfilt {
+                        maxfilt = *filt;
+                    }
                 }
             }
-        }
-        TemporalFilter::Gaussian => {
-            let halfsteps = num_steps.f64() / 2.0;
-            for (i, filt) in filter.iter_mut().enumerate() {
-                /* Gaussian */
-                *filt = flam3_spatial_filter(
-                    SpatialFilter::Gaussian,
-                    filter_scale(SpatialFilter::Gaussian) * (i.f64() - halfsteps).abs() / halfsteps,
-                );
-                /* Keep the max */
-                if *filt > maxfilt {
-                    maxfilt = *filt;
+            TemporalFilterType::Gaussian => {
+                let halfsteps = num_steps.f64() / 2.0;
+                for (i, filt) in filter.iter_mut().enumerate() {
+                    /* Gaussian */
+                    *filt = flam3_spatial_filter(
+                        SpatialFilter::Gaussian,
+                        filter_scale(SpatialFilter::Gaussian) * (i.f64() - halfsteps).abs()
+                            / halfsteps,
+                    );
+                    /* Keep the max */
+                    if *filt > maxfilt {
+                        maxfilt = *filt;
+                    }
                 }
             }
-        }
-        TemporalFilter::Box => {
-            for filt in filter.iter_mut() {
-                *filt = 1.0;
+            TemporalFilterType::Box => {
+                for filt in filter.iter_mut() {
+                    *filt = 1.0;
+                }
+
+                maxfilt = 1.0;
             }
+        }
 
-            maxfilt = 1.0;
+        /* Adjust the filter so that the max is 1.0, and */
+        /* calculate the K2 scaling factor  */
+        for filt in filter.iter_mut() {
+            *filt /= maxfilt;
+            sumfilt += *filt;
+        }
+
+        sumfilt /= num_steps.f64();
+
+        TemporalFilter {
+            sumfilt,
+            num_temporal_samples,
+            filter,
+            deltas,
         }
     }
 
-    /* Adjust the filter so that the max is 1.0, and */
-    /* calculate the K2 scaling factor  */
-    for filt in filter.iter_mut() {
-        *filt /= maxfilt;
-        sumfilt += *filt;
+    pub fn color_scale(&self, batch_num: u32, temporal_sample_num: u32) -> f64 {
+        self.filter[(batch_num * self.num_temporal_samples + temporal_sample_num).usize()]
     }
 
-    sumfilt /= num_steps.f64();
-
-    Ok((sumfilt, filter, deltas))
+    pub fn time_offset(&self, batch_num: u32, temporal_sample_num: u32) -> f64 {
+        self.deltas[(batch_num * self.num_temporal_samples + temporal_sample_num).usize()]
+    }
 }
 
 pub(super) fn flam3_create_de_filters(

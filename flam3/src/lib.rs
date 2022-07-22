@@ -126,7 +126,7 @@ pub enum SpatialFilter {
 
 #[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
 #[educe(Default)]
-pub enum TemporalFilter {
+pub enum TemporalFilterType {
     #[educe(Default)]
     #[strum(serialize = "box")]
     Box,
@@ -277,7 +277,7 @@ pub struct Genome {
     pub spatial_supersample: u32,
     pub spatial_filter: SpatialFilter,
     pub spatial_filter_radius: f64,
-    pub temporal_filter: TemporalFilter,
+    pub temporal_filter: TemporalFilterType,
     pub temporal_filter_width: f64,
     pub temporal_filter_exp: f64,
     pub palette_mode: PaletteMode,

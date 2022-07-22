@@ -15,8 +15,8 @@ use crate::{
     parse,
     utils::{color_from_str, color_to_str, try_map},
     variations::{self, Var},
-    Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette, TemporalFilter,
-    Transform,
+    Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette,
+    TemporalFilterType, Transform,
 };
 
 const VARIATION_COUNT: usize = 99;
@@ -793,7 +793,7 @@ fn serialize_genome<W: Write>(genome: &Genome, writer: &mut EventWriter<W>) -> R
     writep!(attrs, genome.spatial_filter_radius, "filter");
     writep!(attrs, genome.spatial_filter, "filter_shape");
     writep!(attrs, genome.temporal_filter, "temporal_filter_type");
-    if genome.temporal_filter == TemporalFilter::Exp {
+    if genome.temporal_filter == TemporalFilterType::Exp {
         writep!(attrs, genome.temporal_filter_exp, "temporal_filter_exp");
     }
     writep!(attrs, genome.temporal_filter_width, "temporal_filter_width");

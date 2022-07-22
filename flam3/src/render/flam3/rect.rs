@@ -4,6 +4,7 @@ use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
 use crate::math::{cos, ln, pow, sin, sqr};
 use crate::rect::Rect;
+use crate::render::flam3::filters::TemporalFilter;
 use crate::render::flam3::{Accumulator, Bucket};
 use crate::{
     render::flam3::{rng::Flam3Rng, Flam3DeHelper},
@@ -11,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    filters::{create_spatial_filter, flam3_create_de_filters, flam3_create_temporal_filter},
+    filters::{create_spatial_filter, flam3_create_de_filters},
     flam3_interpolate,
     thread::{de_thread, iter_thread},
     Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderStorage,
@@ -132,12 +133,13 @@ pub(super) fn render_rectangle<S: RenderStorage>(
     let batch_filter = vec![1.0 / num_batches.f64(); num_batches.usize()];
 
     //  temporal filter - we must free temporal_filter and temporal_deltas at the end
-    let (sumfilt, temporal_filter, temporal_deltas) = flam3_create_temporal_filter(
-        (num_batches * num_temporal_samples).usize(),
+    let temporal_filter = TemporalFilter::new(
         cp.temporal_filter,
         cp.temporal_filter_exp,
         cp.temporal_filter_width,
-    )?;
+        num_batches,
+        num_temporal_samples,
+    );
 
     /*
        the number of additional rows of buckets we put at the edge so
@@ -189,7 +191,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
     for batch_num in 0..num_batches {
         log::trace!("Rendering batch {} of {}", batch_num, num_batches);
         let mut sample_density = 0.0;
-        let de_time = frame.time + temporal_deltas[(batch_num * num_temporal_samples).usize()];
+        let de_time = frame.time + temporal_filter.time_offset(batch_num, 0);
 
         let mut buckets = Rect::<Bucket<S::BucketField>>::rectangle(
             storage_width.usize(),
@@ -230,11 +232,9 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 num_temporal_samples
             );
 
-            let color_scalar =
-                temporal_filter[(batch_num * num_temporal_samples + temporal_sample_num).usize()];
-
-            let temporal_sample_time = frame.time
-                + temporal_deltas[(batch_num * num_temporal_samples + temporal_sample_num).usize()];
+            let color_scalar = temporal_filter.color_scale(batch_num, temporal_sample_num);
+            let temporal_sample_time =
+                frame.time + temporal_filter.time_offset(batch_num, temporal_sample_num);
 
             //  Interpolate and get a control point
             let cp = flam3_interpolate(&frame.genomes, temporal_sample_time, 0.0)?;
@@ -356,7 +356,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 * image_height.f64()
                 * WHITE_LEVEL.f64()
                 * sample_density
-                * sumfilt);
+                * temporal_filter.sumfilt);
 
         if de.max_filter_index == 0 {
             for j in 0..buckets.height() {
