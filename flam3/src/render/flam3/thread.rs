@@ -215,19 +215,20 @@ pub(super) fn de_thread<S: RenderStorage>(
     let ss = (supersample.f64() / 2.0).floor().usize();
     let scf = (supersample & 1) == 0;
     let scfact = sqr!(supersample.f64() / (supersample.f64() + 1.0));
-    let str = ((supersample - 1) + dthp.start_row).usize();
-    let enr = ((supersample - 1).i32() + dthp.end_row).usize();
+    let start_row = ((supersample - 1) + dthp.start_row).usize();
+    let end_row = ((supersample - 1) + dthp.end_row).usize();
+    let de_filters = dthp.de_filters;
 
     log::trace!(
         "Starting density estimation thread for rows {} to {}, width={}, height={}",
-        str,
-        enr,
+        start_row,
+        end_row,
         accumulate.width(),
         accumulate.height()
     );
 
     /* Density estimation code */
-    for j in str..enr {
+    for j in start_row..end_row {
         for i in supersample.usize() - 1..accumulate.width() - (supersample.usize() - 1) {
             let mut f_select = 0.0;
 
@@ -248,41 +249,39 @@ pub(super) fn de_thread<S: RenderStorage>(
                 f_select *= scfact;
             }
 
-            let mut f_select_int = if f_select > dthp.de.max_filtered_counts.f64() {
-                dthp.de.max_filter_index
+            let mut f_select_int = if f_select > de_filters.max_filtered_counts {
+                de_filters.filters.len() - 1
             } else if f_select <= DE_THRESH.f64() {
-                f_select.ceil().u32() - 1
+                f_select.ceil().usize() - 1
             } else {
-                DE_THRESH + pow!(f_select - DE_THRESH.f64(), dthp.curve).floor().u32()
+                DE_THRESH + pow!(f_select - DE_THRESH.f64(), dthp.curve).floor().usize()
             };
 
             /* If the filter selected below the min specified clamp it to the min */
-            if f_select_int > dthp.de.max_filter_index {
-                f_select_int = dthp.de.max_filter_index;
+            if f_select_int > (de_filters.filters.len() - 1) {
+                f_select_int = de_filters.filters.len() - 1;
             }
 
             /* We only have to calculate the values for ~1/8 of the square */
-            let mut f_coef_idx = (f_select_int * dthp.de.kernel_size).usize();
+            let mut f_coef_idx = 0;
 
-            let arr_filt_width = (dthp.de.filter_widths[f_select_int.usize()]).ceil().u32() - 1;
+            let filter = &de_filters.filters[f_select_int];
 
             let current_pixel = buckets[(i, j)].accumulator();
 
-            for jj in 0..=arr_filt_width.i32() {
+            for jj in 0..=filter.width.i32() {
                 for ii in 0..=jj {
                     /* Skip if coef is 0 */
-                    if dthp.de.filter_coefs[f_coef_idx] == 0.0 {
+                    if filter.coefs[f_coef_idx] == 0.0 {
                         f_coef_idx += 1;
                         continue;
                     }
 
-                    let mut pixel = current_pixel.clone();
+                    let ls = filter.coefs[f_coef_idx]
+                        * (dthp.k1 * ln!(1.0 + current_pixel.alpha * dthp.k2))
+                        / current_pixel.alpha;
 
-                    let ls = dthp.de.filter_coefs[f_coef_idx]
-                        * (dthp.k1 * ln!(1.0 + pixel.alpha * dthp.k2))
-                        / pixel.alpha;
-
-                    pixel *= ls;
+                    let pixel = &current_pixel * ls;
 
                     if jj == 0 && ii == 0 {
                         S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);

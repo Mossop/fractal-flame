@@ -12,6 +12,7 @@ use crate::math::{ln, pow};
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
 pub(crate) use storage::{Accumulator, Bucket, RenderStorage, RenderStorageAtomicFloat};
 
+use self::filters::DensityEstimatorFilters;
 use self::{rect::render_rectangle, rng::Flam3Rng};
 
 use super::{Buffers, RenderOptions};
@@ -96,15 +97,6 @@ impl Flam3IterConstants {
     }
 }
 
-#[derive(Default, Debug, Clone)]
-struct Flam3DeHelper {
-    max_filtered_counts: u32,
-    max_filter_index: u32,
-    kernel_size: u32,
-    filter_widths: Vec<f64>,
-    filter_coefs: Vec<f64>,
-}
-
 struct Flam3ThreadHelper {
     rng: Flam3Rng, /* Thread-unique rng */
     cp: Genome,    /* Full copy of genome for use by the thread */
@@ -113,12 +105,12 @@ struct Flam3ThreadHelper {
 
 struct Flam3DeThreadHelper {
     supersample: u32,
-    de: Flam3DeHelper,
+    de_filters: DensityEstimatorFilters,
     k1: f64,
     k2: f64,
     curve: f64,
     start_row: u32,
-    end_row: i32,
+    end_row: u32,
 }
 
 pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage, String> {

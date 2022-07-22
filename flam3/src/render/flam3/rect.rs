@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::f64::consts::PI;
 
 use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
@@ -7,12 +8,12 @@ use crate::rect::Rect;
 use crate::render::flam3::filters::TemporalFilter;
 use crate::render::flam3::{Accumulator, Bucket};
 use crate::{
-    render::flam3::{rng::Flam3Rng, Flam3DeHelper},
+    render::flam3::{rng::Flam3Rng, DensityEstimatorFilters},
     utils::PanicCast,
 };
 
 use super::{
-    filters::{create_spatial_filter, flam3_create_de_filters},
+    filters::create_spatial_filter,
     flam3_interpolate,
     thread::{de_thread, iter_thread},
     Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderStorage,
@@ -210,15 +211,15 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         }
 
         // Create DE filters
-        let de = if cp.estimator_radius > 0.0 {
-            flam3_create_de_filters(
+        let de_filters = if cp.estimator_radius > 0.0 {
+            DensityEstimatorFilters::new(
                 cp.estimator_radius,
                 cp.estimator_minimum,
                 cp.estimator_curve,
                 supersample,
             )?
         } else {
-            Flam3DeHelper::default()
+            DensityEstimatorFilters::default()
         };
 
         let mut ppux = 0.0;
@@ -358,7 +359,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 * sample_density
                 * temporal_filter.sumfilt);
 
-        if de.max_filter_index == 0 {
+        if de_filters.filters.is_empty() {
             for j in 0..buckets.height() {
                 for i in 0..buckets.width() {
                     let mut pixel = buckets[(i, j)].accumulator();
@@ -375,36 +376,24 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             }
         } else {
             let myspan = buckets.height().u32() - 2 * (supersample - 1) + 1;
-            let swath = myspan / frame.num_threads.u32();
+            let thread_count = max(frame.num_threads, myspan.usize());
+            let swath = myspan / thread_count.u32();
 
             //  Create the de helper structures
             let mut deth: Vec<Flam3DeThreadHelper> = Vec::new();
 
-            for i in 0..frame.num_threads {
-                let start_row;
-                let end_row;
-                if frame.num_threads > myspan.usize() {
-                    //  More threads than rows
-                    start_row = 0;
-                    if i == frame.num_threads - 1 {
-                        end_row = myspan.i32();
-                    } else {
-                        end_row = -1;
-                    }
+            for i in 0..thread_count {
+                let start_row = i.u32() * swath;
+                let end_row = if i == thread_count - 1 {
+                    buckets.height().u32() //myspan.i32();
                 } else {
-                    //  Normal case
-                    start_row = i.u32() * swath;
-                    if i == frame.num_threads - 1 {
-                        end_row = buckets.height().i32(); //myspan.i32();
-                    } else {
-                        end_row = ((i.u32() + 1) * swath).i32();
-                    }
-                }
+                    ((i.u32() + 1) * swath).u32()
+                };
 
                 //  Set up the contents of the helper structure
                 deth.push(Flam3DeThreadHelper {
                     supersample,
-                    de: de.clone(),
+                    de_filters: de_filters.clone(),
                     k1,
                     k2,
                     curve: cp.estimator_curve,

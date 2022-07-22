@@ -4,11 +4,11 @@ use crate::math::{cos, exp, pow, sin, sqr, sqrt, sum_sqr};
 use crate::rect::Rect;
 use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilterType};
 
-use super::{Field, Flam3DeHelper, Flam3Frame};
+use super::{Field, Flam3Frame};
 
 const FLAM3_MITCHELL_B: f64 = 1.0 / 3.0;
 const FLAM3_MITCHELL_C: f64 = 1.0 / 3.0;
-pub const DE_THRESH: u32 = 100;
+pub const DE_THRESH: usize = 100;
 
 fn filter_scale(spatial_filter: SpatialFilter) -> f64 {
     match spatial_filter {
@@ -283,7 +283,7 @@ pub(super) fn create_spatial_filter(frame: &Flam3Frame, field: Field) -> Result<
     Ok(filter)
 }
 
-pub struct TemporalFilter {
+pub(super) struct TemporalFilter {
     pub sumfilt: f64,
     num_temporal_samples: u32,
     filter: Vec<f64>,
@@ -393,135 +393,144 @@ impl TemporalFilter {
     }
 }
 
-pub(super) fn flam3_create_de_filters(
-    max_rad: f64,
-    min_rad: f64,
-    curve: f64,
-    supersample: u32,
-) -> Result<Flam3DeHelper, String> {
-    let keep_thresh = 100;
+#[derive(Default, Debug, Clone)]
+pub(super) struct DensityEstimatorFilter {
+    pub width: usize,
+    pub coefs: Vec<f64>,
+}
 
-    let mut de = Flam3DeHelper::default();
+#[derive(Default, Debug, Clone)]
+pub(super) struct DensityEstimatorFilters {
+    pub max_filtered_counts: f64,
+    pub filters: Vec<DensityEstimatorFilter>,
+}
 
-    if curve <= 0.0 {
-        return Err("Estimator curve must be > 0".to_string());
-    }
+impl DensityEstimatorFilters {
+    pub fn new(
+        max_radius: f64,
+        min_radius: f64,
+        curve: f64,
+        supersample: u32,
+    ) -> Result<DensityEstimatorFilters, String> {
+        let mut de_filters = DensityEstimatorFilters::default();
 
-    if max_rad < min_rad {
-        return Err("Estimator must be larger than estimator_minimum".to_string());
-    }
+        if curve <= 0.0 {
+            return Err("Estimator curve must be > 0".to_string());
+        }
 
-    /* We should scale the filter width by the supersample          */
-    /* The '+1' comes from the assumed distance to the first pixel */
-    let comp_max_radius = max_rad * supersample.f64() + 1.0;
-    let comp_min_radius = min_rad * supersample.f64() + 1.0;
+        if max_radius < min_radius {
+            return Err("Estimator must be larger than estimator_minimum".to_string());
+        }
 
-    /* Calculate how many filter kernels we need based on the decay function */
-    /*                                                                       */
-    /*    num filters = (de_max_width / de_min_width)^(1/estimator_curve)    */
-    /*                                                                       */
-    let num_de_filters_d = pow!(comp_max_radius / comp_min_radius, 1.0 / curve);
-    if num_de_filters_d > 1e7 {
-        return Err(format!(
-            "Too many filters required in this configuration ({})",
-            num_de_filters_d
-        ));
-    }
-    let num_de_filters = num_de_filters_d.ceil().u32();
+        // We should scale the filter width by the supersample
+        // The '+1' comes from the assumed distance to the first pixel
+        let comp_max_radius = max_radius * supersample.f64() + 1.0;
+        let comp_min_radius = min_radius * supersample.f64() + 1.0;
 
-    /* Condense the smaller kernels to save space */
-    let de_max_ind;
-    if num_de_filters > keep_thresh {
-        de_max_ind = DE_THRESH + pow!((num_de_filters - DE_THRESH).f64(), curve).ceil().u32() + 1;
-        de.max_filtered_counts =
-            pow!((de_max_ind - DE_THRESH).f64(), 1.0 / curve).u32() + DE_THRESH;
-    } else {
-        de_max_ind = num_de_filters;
-        de.max_filtered_counts = de_max_ind;
-    }
+        // Calculate how many filter kernels we need based on the decay function
+        let filter_count = pow!(comp_max_radius / comp_min_radius, 1.0 / curve);
+        if filter_count > 1e7 {
+            return Err(format!(
+                "Too many filters required in this configuration ({})",
+                filter_count
+            ));
+        }
+        let filter_count = filter_count.ceil().usize();
 
-    /* Allocate the memory for these filters */
-    /* and the hit/width lookup vector       */
-    let max_radius_int = comp_max_radius.ceil().u32();
-    let de_half_size = (max_radius_int - 1).i32();
-    de.kernel_size = max_radius_int * (max_radius_int + 1) / 2;
-
-    de.filter_coefs = vec![0.0; (de_max_ind * de.kernel_size).usize()];
-    de.filter_widths = vec![0.0; de_max_ind.usize()];
-
-    /* Generate the filter coefficients */
-    de.max_filter_index = 0;
-    for filtloop in 0..de_max_ind {
-        let mut de_filt_sum = 0.0;
-
-        /* Calculate the filter width for this number of hits in a bin */
-        let mut de_filt_h = if filtloop < keep_thresh {
-            comp_max_radius / pow!((filtloop + 1).f64(), curve)
+        // Condense the smaller kernels to save space
+        let de_max_ind;
+        if filter_count > DE_THRESH {
+            de_max_ind =
+                DE_THRESH + pow!((filter_count - DE_THRESH).f64(), curve).ceil().usize() + 1;
+            de_filters.max_filtered_counts =
+                (pow!((de_max_ind - DE_THRESH).f64(), 1.0 / curve).usize() + DE_THRESH).f64();
         } else {
-            let adjloop = pow!((filtloop - keep_thresh).f64(), 1.0 / curve) + keep_thresh.f64();
-            fastdiv!(comp_max_radius, pow!(adjloop + 1.0, curve))
-        };
-
-        /* Once we've reached the min radius, don't populate any more */
-        if de_filt_h <= comp_min_radius {
-            de_filt_h = comp_min_radius;
-            de.max_filter_index = filtloop;
+            de_max_ind = filter_count;
+            de_filters.max_filtered_counts = de_max_ind.f64();
         }
 
-        de.filter_widths[filtloop.usize()] = de_filt_h;
+        /* Allocate the memory for these filters */
+        /* and the hit/width lookup vector       */
+        let max_radius_int = comp_max_radius.ceil().u32();
+        let de_half_size = (max_radius_int - 1).i32();
+        let kernel_size = (max_radius_int * (max_radius_int + 1) / 2).usize();
 
-        /* Calculate norm of kernel separately (easier) */
-        for dej in -de_half_size..=de_half_size {
-            for dek in -de_half_size..=de_half_size {
-                let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
+        /* Generate the filter coefficients */
+        let mut done = false;
 
-                /* Only populate the coefs within this radius */
-                if de_filt_d <= 1.0 {
-                    /* Gaussian */
-                    de_filt_sum += flam3_spatial_filter(
-                        SpatialFilter::Gaussian,
-                        filter_scale(SpatialFilter::Gaussian) * de_filt_d,
-                    );
+        for filter_index in 0..de_max_ind {
+            let mut de_filt_sum = 0.0;
 
-                    /* Epanichnikov */
-                    //             de_filt_sum += (1.0 - sqr!(de_filt_d));
+            /* Calculate the filter width for this number of hits in a bin */
+            let mut de_filt_h = if filter_index < DE_THRESH {
+                comp_max_radius / pow!((filter_index + 1).f64(), curve)
+            } else {
+                let adjloop = pow!((filter_index - DE_THRESH).f64(), 1.0 / curve) + DE_THRESH.f64();
+                fastdiv!(comp_max_radius, pow!(adjloop + 1.0, curve))
+            };
+
+            /* Once we've reached the min radius, don't populate any more */
+            if de_filt_h <= comp_min_radius {
+                de_filt_h = comp_min_radius;
+                done = true;
+            }
+
+            let mut filter = DensityEstimatorFilter {
+                width: de_filt_h.ceil().usize() - 1,
+                coefs: vec![0.0; kernel_size],
+            };
+
+            /* Calculate norm of kernel separately (easier) */
+            for dej in -de_half_size..=de_half_size {
+                for dek in -de_half_size..=de_half_size {
+                    let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
+
+                    /* Only populate the coefs within this radius */
+                    if de_filt_d <= 1.0 {
+                        /* Gaussian */
+                        de_filt_sum += flam3_spatial_filter(
+                            SpatialFilter::Gaussian,
+                            filter_scale(SpatialFilter::Gaussian) * de_filt_d,
+                        );
+
+                        /* Epanichnikov */
+                        // de_filt_sum += (1.0 - sqr!(de_filt_d));
+                    }
                 }
+            }
+
+            let mut filter_coef_idx = 0;
+
+            /* Calculate the unique entries of the kernel */
+            for dej in 0..=de_half_size {
+                for dek in 0..=dej {
+                    let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
+
+                    /* Only populate the coefs within this radius */
+                    if de_filt_d > 1.0 {
+                        filter.coefs[filter_coef_idx] = 0.0;
+                    } else {
+                        /* Gaussian */
+                        filter.coefs[filter_coef_idx] = flam3_spatial_filter(
+                            SpatialFilter::Gaussian,
+                            filter_scale(SpatialFilter::Gaussian) * de_filt_d,
+                        ) / de_filt_sum;
+
+                        /* Epanichnikov */
+                        // de_filter_coefs[filter_coef_idx] = (1.0 - sqr!(de_filt_d))/de_filt_sum;
+                    }
+
+                    filter_coef_idx += 1;
+                }
+            }
+
+            de_filters.filters.push(filter);
+
+            if done {
+                break;
             }
         }
 
-        let mut filter_coef_idx = filtloop * de.kernel_size;
-
-        /* Calculate the unique entries of the kernel */
-        for dej in 0..=de_half_size {
-            for dek in 0..=dej {
-                let de_filt_d = sqrt!(sum_sqr!(dej, dek).f64()) / de_filt_h;
-
-                /* Only populate the coefs within this radius */
-                if de_filt_d > 1.0 {
-                    de.filter_coefs[filter_coef_idx.usize()] = 0.0;
-                } else {
-                    /* Gaussian */
-                    de.filter_coefs[filter_coef_idx.usize()] = flam3_spatial_filter(
-                        SpatialFilter::Gaussian,
-                        filter_scale(SpatialFilter::Gaussian) * de_filt_d,
-                    ) / de_filt_sum;
-
-                    /* Epanichnikov */
-                    //             de_filter_coefs[filter_coef_idx] = (1.0 - sqr!(de_filt_d))/de_filt_sum;
-                }
-
-                filter_coef_idx += 1;
-            }
-        }
-
-        if de.max_filter_index > 0 {
-            break;
-        }
+        Ok(de_filters)
     }
-
-    if de.max_filter_index == 0 {
-        de.max_filter_index = de_max_ind - 1;
-    }
-
-    Ok(de)
 }

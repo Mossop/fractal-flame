@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut, MulAssign};
+use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use palette::Srgba;
 
@@ -70,6 +70,19 @@ impl MulAssign<f64> for Accumulator<f64> {
         self.green *= rhs;
         self.blue *= rhs;
         self.alpha *= rhs;
+    }
+}
+
+impl Mul<f64> for &Accumulator<f64> {
+    type Output = Accumulator<f64>;
+
+    fn mul(self, rhs: f64) -> Accumulator<f64> {
+        Accumulator {
+            red: self.red * rhs,
+            green: self.green * rhs,
+            blue: self.blue * rhs,
+            alpha: self.alpha * rhs,
+        }
     }
 }
 
