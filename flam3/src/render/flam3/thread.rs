@@ -263,50 +263,20 @@ pub(super) fn de_thread<S: RenderStorage>(
             }
 
             /* We only have to calculate the values for ~1/8 of the square */
-            let mut f_coef_idx = 0;
-
             let filter = &de_filters.filters[f_select_int];
-
             let current_pixel = buckets[(i, j)].accumulator();
 
-            for jj in 0..=filter.width.i32() {
-                for ii in 0..=jj {
-                    /* Skip if coef is 0 */
-                    if filter.coefs[f_coef_idx] == 0.0 {
-                        f_coef_idx += 1;
-                        continue;
-                    }
+            for (coef, coef_operations) in filter.operations.iter() {
+                if coef_operations.is_empty() {
+                    continue;
+                }
 
-                    let ls = filter.coefs[f_coef_idx]
-                        * (dthp.k1 * ln!(1.0 + current_pixel.alpha * dthp.k2))
-                        / current_pixel.alpha;
+                let ls = coef * (dthp.k1 * ln!(1.0 + current_pixel.alpha * dthp.k2))
+                    / current_pixel.alpha;
+                let pixel = &current_pixel * ls;
 
-                    let pixel = &current_pixel * ls;
-
-                    if jj == 0 && ii == 0 {
-                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
-                    } else if ii == 0 {
-                        S::add_c_to_accum(accumulate, i, jj, j, 0, &pixel);
-                        S::add_c_to_accum(accumulate, i, -jj, j, 0, &pixel);
-                        S::add_c_to_accum(accumulate, i, 0, j, jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, 0, j, -jj, &pixel);
-                    } else if jj == ii {
-                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, -ii, j, jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, ii, j, -jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, -ii, j, -jj, &pixel);
-                    } else {
-                        S::add_c_to_accum(accumulate, i, ii, j, jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, -ii, j, jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, ii, j, -jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, -ii, j, -jj, &pixel);
-                        S::add_c_to_accum(accumulate, i, jj, j, ii, &pixel);
-                        S::add_c_to_accum(accumulate, i, -jj, j, ii, &pixel);
-                        S::add_c_to_accum(accumulate, i, jj, j, -ii, &pixel);
-                        S::add_c_to_accum(accumulate, i, -jj, j, -ii, &pixel);
-                    }
-
-                    f_coef_idx += 1;
+                for (ii, jj) in coef_operations {
+                    S::add_c_to_accum(accumulate, i, *ii, j, *jj, &pixel);
                 }
             }
         }

@@ -395,8 +395,60 @@ impl TemporalFilter {
 
 #[derive(Default, Debug, Clone)]
 pub(super) struct DensityEstimatorFilter {
-    pub width: usize,
-    pub coefs: Vec<f64>,
+    pub operations: Vec<(f64, Vec<(i32, i32)>)>,
+}
+
+impl DensityEstimatorFilter {
+    fn new(width: usize, coefs: Vec<f64>) -> DensityEstimatorFilter {
+        let mut operations = Vec::new();
+        let mut f_coef_idx: usize = 0;
+
+        for jj in 0..=width.i32() {
+            for ii in 0..=jj {
+                let mut coef_operations = Vec::new();
+
+                let coef = coefs[f_coef_idx];
+                /* Skip if coef is 0 */
+                if coef == 0.0 {
+                    f_coef_idx += 1;
+                    operations.push((0.0, coef_operations));
+                    continue;
+                }
+
+                if jj == 0 && ii == 0 {
+                    coef_operations.push((0, 0));
+                } else if ii == 0 {
+                    // jj cannot be 0 here.
+                    // This applies to vertices.
+                    coef_operations.push((jj, 0));
+                    coef_operations.push((-jj, 0));
+                    coef_operations.push((0, jj));
+                    coef_operations.push((0, -jj));
+                } else if jj == ii {
+                    // Neither ii nor jj can be 0 here.
+                    // This applies to square corners.
+                    coef_operations.push((ii, ii));
+                    coef_operations.push((-ii, ii));
+                    coef_operations.push((ii, -ii));
+                    coef_operations.push((-ii, -ii));
+                } else {
+                    coef_operations.push((ii, jj));
+                    coef_operations.push((-ii, jj));
+                    coef_operations.push((ii, -jj));
+                    coef_operations.push((-ii, -jj));
+                    coef_operations.push((jj, ii));
+                    coef_operations.push((-jj, ii));
+                    coef_operations.push((jj, -ii));
+                    coef_operations.push((-jj, -ii));
+                }
+
+                operations.push((coef, coef_operations));
+                f_coef_idx += 1;
+            }
+        }
+
+        DensityEstimatorFilter { operations }
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -475,10 +527,7 @@ impl DensityEstimatorFilters {
                 done = true;
             }
 
-            let mut filter = DensityEstimatorFilter {
-                width: de_filt_h.ceil().usize() - 1,
-                coefs: vec![0.0; kernel_size],
-            };
+            let mut coefs = vec![0.0; kernel_size];
 
             /* Calculate norm of kernel separately (easier) */
             for dej in -de_half_size..=de_half_size {
@@ -508,10 +557,10 @@ impl DensityEstimatorFilters {
 
                     /* Only populate the coefs within this radius */
                     if de_filt_d > 1.0 {
-                        filter.coefs[filter_coef_idx] = 0.0;
+                        coefs[filter_coef_idx] = 0.0;
                     } else {
                         /* Gaussian */
-                        filter.coefs[filter_coef_idx] = flam3_spatial_filter(
+                        coefs[filter_coef_idx] = flam3_spatial_filter(
                             SpatialFilter::Gaussian,
                             filter_scale(SpatialFilter::Gaussian) * de_filt_d,
                         ) / de_filt_sum;
@@ -524,7 +573,10 @@ impl DensityEstimatorFilters {
                 }
             }
 
-            de_filters.filters.push(filter);
+            de_filters.filters.push(DensityEstimatorFilter::new(
+                de_filt_h.ceil().usize() - 1,
+                coefs,
+            ));
 
             if done {
                 break;
