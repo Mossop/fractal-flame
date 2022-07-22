@@ -1,8 +1,15 @@
 #! /bin/sh
 
-SOURCES=`ls flam3/tests/*.flam3`
-for SOURCE in $SOURCES
+out() {
+  TARGET=`echo $1 | sed -E -e s/\\\\.flam3/.png/`
+  echo --out=$TARGET $1
+}
+
+RENDER="cargo run --release --features libm -- --seed=foobar"
+
+for SOURCE in `ls flam3/tests/render/*.flam3`
 do
-  TARGET=`echo $SOURCE | sed -E -e s/\\\\.flam3/.png/`
-  cargo run --release --features libm -- --out=$TARGET --seed=foobar $SOURCE
+  $RENDER $(out $SOURCE)
 done
+
+$RENDER --earlyclip $(out flam3/tests/options/earlyclip.flam3)
