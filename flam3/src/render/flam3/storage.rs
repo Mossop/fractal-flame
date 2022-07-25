@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use palette::Srgba;
 
-use crate::{rect::Rect, utils::PanicCast};
+use crate::utils::PanicCast;
 
 #[derive(Clone)]
 pub(crate) struct Bucket<T> {
@@ -136,23 +136,6 @@ pub(crate) trait RenderStorage {
         Self::increase_accumulator_field(&mut dest.green, pixel_delta.green);
         Self::increase_accumulator_field(&mut dest.blue, pixel_delta.blue);
         Self::increase_accumulator_field(&mut dest.alpha, pixel_delta.alpha);
-    }
-
-    fn add_c_to_accum(
-        acc: &mut Rect<Accumulator<Self::AccumulatorField>>,
-        i: usize,
-        ii: i32,
-        j: usize,
-        jj: i32,
-        delta: &Accumulator<f64>,
-    ) {
-        let y = j.i32() + jj;
-        let x = i.i32() + ii;
-        let width = acc.width().i32();
-        let height = acc.height().i32();
-        if y >= 0 && y < height && x >= 0 && x < width {
-            Self::increase_accumulator(&mut acc[(x.usize(), y.usize())], delta);
-        }
     }
 }
 

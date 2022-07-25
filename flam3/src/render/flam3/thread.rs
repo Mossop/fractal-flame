@@ -266,7 +266,9 @@ pub(super) fn de_thread<S: RenderStorage>(
             let filter = &de_filters.filters[f_select_int];
             let current_pixel = buckets[(i, j)].accumulator();
 
-            for (coef, coef_operations) in filter.operations.iter() {
+            for (coef, coef_operations) in
+                filter.operations(i, j, accumulate.width(), accumulate.height())
+            {
                 if coef_operations.is_empty() {
                     continue;
                 }
@@ -275,8 +277,8 @@ pub(super) fn de_thread<S: RenderStorage>(
                     / current_pixel.alpha;
                 let pixel = &current_pixel * ls;
 
-                for (ii, jj) in coef_operations {
-                    S::add_c_to_accum(accumulate, i, *ii, j, *jj, &pixel);
+                for (x, y) in coef_operations {
+                    S::increase_accumulator(&mut accumulate[(x, y)], &pixel)
                 }
             }
         }
