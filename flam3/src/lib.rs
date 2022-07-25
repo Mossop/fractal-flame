@@ -7,7 +7,6 @@ pub mod variations;
 
 use std::{cmp::Ordering, f64::consts::PI, ops::Index};
 
-use educe::Educe;
 pub use file::flam3::{flam3_from_reader, flam3_to_writer};
 use math::{atan2, cos, sin};
 use palette::Srgba;
@@ -52,36 +51,39 @@ impl From<Coordinate> for (f64, f64) {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum Interpolation {
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "linear")]
     Linear,
     #[strum(serialize = "smooth")]
     Smooth,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum PaletteInterpolation {
     #[strum(serialize = "hsv")]
     Hsv,
     #[strum(serialize = "sweep")]
     Sweep,
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "hsv_circular")]
     HsvCircular,
     #[strum(serialize = "rgb")]
     Rgb,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum InterpolationType {
     #[strum(serialize = "linear")]
     Linear,
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "log")]
     Log,
     #[strum(serialize = "old")]
@@ -90,10 +92,11 @@ pub enum InterpolationType {
     Older,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum SpatialFilter {
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "gaussian")]
     Gaussian,
     #[strum(serialize = "hermite")]
@@ -124,10 +127,11 @@ pub enum SpatialFilter {
     Quadratic,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum TemporalFilterType {
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "box")]
     Box,
     #[strum(serialize = "gaussian")]
@@ -136,20 +140,22 @@ pub enum TemporalFilterType {
     Exp,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum PaletteMode {
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "step")]
     Step,
     #[strum(serialize = "linear")]
     Linear,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, strum_macros::EnumString, strum_macros::Display, Educe)]
-#[educe(Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Default, strum_macros::EnumString, strum_macros::Display,
+)]
 pub enum MotionFunction {
-    #[educe(Default)]
+    #[default]
     #[strum(serialize = "sin")]
     Sin,
     #[strum(serialize = "triangle")]

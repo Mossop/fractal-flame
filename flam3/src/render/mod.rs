@@ -1,16 +1,14 @@
-use educe::Educe;
 use image::RgbaImage;
 
 use crate::Genome;
 
 pub mod flam3;
 
-#[derive(Debug, Clone, Copy, PartialEq, Educe)]
-#[educe(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Buffers {
     Int = 32,
     Double = 64,
-    #[educe(Default)]
+    #[default]
     Float = 33,
 }
 
