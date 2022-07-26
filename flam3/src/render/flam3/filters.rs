@@ -2,7 +2,8 @@ use std::f64::consts::PI;
 
 use crate::math::{cos, exp, pow, sin, sqr, sqrt, sum_sqr};
 use crate::rect::Rect;
-use crate::{fastdiv, utils::PanicCast, SpatialFilter, TemporalFilterType};
+use crate::utils::fastdiv;
+use crate::{utils::PanicCast, SpatialFilter, TemporalFilterType};
 
 use super::{Field, Flam3Frame};
 

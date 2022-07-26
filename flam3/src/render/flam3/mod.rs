@@ -128,7 +128,7 @@ pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage
 }
 
 fn render_internal<Ops: RenderStorage>(
-    genome: Genome,
+    mut genome: Genome,
     options: RenderOptions,
     rng: Flam3Rng,
 ) -> Result<RgbaImage, String> {
@@ -163,6 +163,10 @@ fn render_internal<Ops: RenderStorage>(
     let center_base = center_y
         - ((num_strips - 1).f64() * strip_height.f64())
             / (2.0 * genome.pixels_per_unit * zoom_scale);
+
+    if let Some(index) = genome.palette_index {
+        genome.palette = options.palette(index)?;
+    }
 
     for strip in 0..num_strips {
         log::trace!("Rendering strip {} of {}", strip, num_strips);

@@ -267,7 +267,7 @@ pub struct Genome {
     pub interpolation: Interpolation,
     pub palette_interpolation: PaletteInterpolation,
     pub interpolation_type: InterpolationType,
-    pub palette_index: u32,
+    pub palette_index: Option<usize>,
 
     /// The size of the generated image in pixels.
     pub size: Dimension,

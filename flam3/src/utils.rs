@@ -1,7 +1,8 @@
-use std::{fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
+
+use xml::attribute::OwnedAttribute;
 
 /// Simulates the -freciprocal-math optimisation when enabled.
-#[macro_export]
 macro_rules! fastdiv {
     ($num:expr, $den:expr) => {
         if cfg!(fastmath) {
@@ -12,7 +13,7 @@ macro_rules! fastdiv {
     };
 }
 
-pub(crate) trait PanicCast {
+pub trait PanicCast {
     fn i32(self) -> i32;
     fn u8(self) -> u8;
     fn u16(self) -> u16;
@@ -252,3 +253,57 @@ pub fn color_from_str(str: &str) -> Result<f64, String> {
 pub fn color_to_str(color: f64) -> String {
     format!("{:.0}", color * 255.0)
 }
+
+pub trait XmlAttribute: Sized {
+    fn to_attribute(&self) -> String;
+
+    fn from_attribute(attr: &str) -> Result<Self, String>;
+}
+
+macro_rules! read_xml_event {
+    ($parser:ident) => {
+        $parser
+            .next()
+            .map_err(|e| format!("Xml parsing error: {}", e))?
+    };
+}
+
+macro_rules! write_xml_event {
+    ($writer:ident, $event:expr) => {
+        $writer
+            .write($event)
+            .map_err(|e| format!("Xml writing error: {}", e))?
+    };
+}
+
+macro_rules! setp {
+    ($attrs:expr, $field:expr, $name:literal, $conversion:expr) => {
+        if let Some(val) = $attrs.remove($name) {
+            $field = $conversion(&val).map_err(|e| {
+                format!("Failed to convert value '{}' for \"{}\": {}", val, $name, e)
+            })?;
+        }
+    };
+    ($attrs:expr, $field:expr, $name:literal) => {
+        if let Some(val) = $attrs.remove($name) {
+            $field = FromStr::from_str(&val).map_err(|e| {
+                format!("Failed to convert value '{}' for \"{}\": {}", val, $name, e)
+            })?;
+        }
+    };
+}
+
+macro_rules! writep {
+    ($attrs:expr, $field:expr, $name:literal, $map:expr) => {
+        $attrs.push(($name.to_string(), $map($field).to_string()));
+    };
+    ($attrs:expr, $field:expr, $name:literal) => {
+        $attrs.push(($name.to_string(), $field.to_string()));
+    };
+}
+
+pub fn attr_hash(attributes: Vec<OwnedAttribute>) -> HashMap<String, String> {
+    HashMap::from_iter(attributes.into_iter().map(|a| (a.name.local_name, a.value)))
+}
+
+pub(crate) use {fastdiv, read_xml_event, setp, write_xml_event, writep};

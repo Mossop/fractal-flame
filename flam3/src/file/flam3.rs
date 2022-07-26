@@ -6,26 +6,22 @@ use std::{
 
 use palette::{Pixel, Srgb, Srgba, WithAlpha};
 use xml::{
-    attribute::OwnedAttribute,
     reader::{self, EventReader, ParserConfig},
     writer::{self, EmitterConfig, EventWriter},
 };
 
 use crate::{
     parse,
-    utils::{color_from_str, color_to_str, try_map},
+    utils::{
+        attr_hash, color_from_str, color_to_str, read_xml_event, setp, try_map, write_xml_event,
+        writep, XmlAttribute,
+    },
     variations::{self, Var},
     Affine, Coordinate, Dimension, Genome, Interpolation, MotionFunction, Palette,
     TemporalFilterType, Transform,
 };
 
 const VARIATION_COUNT: usize = 99;
-
-trait XmlAttribute: Sized {
-    fn to_attribute(&self) -> String;
-
-    fn from_attribute(attr: &str) -> Result<Self, String>;
-}
 
 impl XmlAttribute for Affine {
     fn from_attribute(list: &str) -> Result<Self, String> {
@@ -125,48 +121,6 @@ impl XmlAttribute for Srgba<f64> {
             )
         }
     }
-}
-
-macro_rules! read_xml_event {
-    ($parser:ident) => {
-        $parser
-            .next()
-            .map_err(|e| format!("Xml parsing error: {}", e))?
-    };
-}
-
-macro_rules! write_xml_event {
-    ($writer:ident, $event:expr) => {
-        $writer
-            .write($event)
-            .map_err(|e| format!("Xml writing error: {}", e))?
-    };
-}
-
-macro_rules! setp {
-    ($attrs:expr, $field:expr, $name:literal, $conversion:expr) => {
-        if let Some(val) = $attrs.remove($name) {
-            $field = $conversion(&val).map_err(|e| {
-                format!("Failed to convert value '{}' for \"{}\": {}", val, $name, e)
-            })?;
-        }
-    };
-    ($attrs:expr, $field:expr, $name:literal) => {
-        if let Some(val) = $attrs.remove($name) {
-            $field = FromStr::from_str(&val).map_err(|e| {
-                format!("Failed to convert value '{}' for \"{}\": {}", val, $name, e)
-            })?;
-        }
-    };
-}
-
-macro_rules! writep {
-    ($attrs:expr, $field:expr, $name:literal, $map:expr) => {
-        $attrs.push(($name.to_string(), $map($field).to_string()));
-    };
-    ($attrs:expr, $field:expr, $name:literal) => {
-        $attrs.push(($name.to_string(), $field.to_string()));
-    };
 }
 
 macro_rules! variations {
@@ -518,10 +472,6 @@ fn finish_element<R: Read>(parser: &mut EventReader<R>) -> Result<(), String> {
     }
 }
 
-fn attr_hash(attributes: Vec<OwnedAttribute>) -> HashMap<String, String> {
-    HashMap::from_iter(attributes.into_iter().map(|a| (a.name.local_name, a.value)))
-}
-
 fn skip_whitespace(chars: &[u8], mut pos: usize) -> usize {
     while pos < chars.len() && chars[pos].is_ascii_whitespace() {
         pos += 1;
@@ -860,7 +810,10 @@ fn parse_genome<R: Read>(
     setp!(attrs, genome.palette_interpolation, "palette_interpolation");
     setp!(attrs, genome.interpolation_type, "interpolation_space");
     setp!(attrs, genome.interpolation_type, "interpolation_type");
-    setp!(attrs, genome.palette_index, "palette");
+    setp!(attrs, genome.palette_index, "palette", |s| usize::from_str(
+        s
+    )
+    .map(Some));
     setp!(attrs, genome.size, "size", XmlAttribute::from_attribute);
     setp!(attrs, genome.center, "center", XmlAttribute::from_attribute);
     setp!(attrs, genome.pixels_per_unit, "scale");
