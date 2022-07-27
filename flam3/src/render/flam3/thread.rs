@@ -5,10 +5,11 @@ use uuid::Uuid;
 
 use crate::math::{ln, pow, sqr};
 use crate::rect::Rect;
+use crate::render::flam3::rng::Flam3Rng;
 use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
 
 use super::{
-    rng::Flam3Rng,
+    rng::IsaacRng,
     variations::{apply_xform, VariationPrecalculations},
     Flam3DeThreadHelper, Flam3ThreadHelper, RenderStorage, TransformSelector,
 };
@@ -38,7 +39,7 @@ fn flam3_iterate(
     skip_iterations: u32,
     samples: &mut [f64],
     selector: &mut TransformSelector,
-    rng: &mut Flam3Rng,
+    rng: &mut IsaacRng,
 ) -> u32 {
     let mut consecutive_failures = 0;
     let mut bad_iterations = 0;
@@ -69,7 +70,7 @@ fn flam3_iterate(
         p = q;
 
         if let Some(ref xform) = cp.final_transform {
-            if xform.opacity == 1.0 || rng.isaac_01() < xform.opacity {
+            if xform.opacity == 1.0 || rng.next_01() < xform.opacity {
                 let precalc = precalcs.get(xform);
                 apply_xform(xform, &p, &mut q, precalc, rng);
                 /* Keep the opacity from the original xform */
@@ -116,10 +117,10 @@ pub(super) fn iter_thread<S: RenderStorage>(
         };
 
         /* Seed iterations */
-        iter_storage[0] = fthp.rng.isaac_11();
-        iter_storage[1] = fthp.rng.isaac_11();
-        iter_storage[2] = fthp.rng.isaac_01();
-        iter_storage[3] = fthp.rng.isaac_01();
+        iter_storage[0] = fthp.rng.next_11();
+        iter_storage[1] = fthp.rng.next_11();
+        iter_storage[2] = fthp.rng.next_01();
+        iter_storage[3] = fthp.rng.next_01();
 
         /* Execute iterations */
         let badcount = flam3_iterate(

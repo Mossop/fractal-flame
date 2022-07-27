@@ -8,7 +8,7 @@ use crate::rect::Rect;
 use crate::render::flam3::filters::TemporalFilter;
 use crate::render::flam3::{Accumulator, Bucket};
 use crate::{
-    render::flam3::{rng::Flam3Rng, DensityEstimatorFilters},
+    render::flam3::{rng::IsaacRng, DensityEstimatorFilters},
     utils::PanicCast,
 };
 
@@ -320,7 +320,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             let mut fth: Vec<Flam3ThreadHelper> = Vec::new();
             for _ in 0..frame.num_threads {
                 fth.push(Flam3ThreadHelper {
-                    rng: Flam3Rng::from_rng(&mut frame.rng),
+                    rng: IsaacRng::from_rng(&mut frame.rng),
                     cp: cp.clone(),
                     fic: fic.clone(),
                 });

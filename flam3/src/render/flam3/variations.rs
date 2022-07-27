@@ -11,7 +11,8 @@ use crate::{
     with_var, Affine, Coordinate, Transform,
 };
 
-use super::{adjust_percentage, rng::Flam3Rng};
+use super::rng::Flam3Rng;
+use super::{adjust_percentage, rng::IsaacRng};
 
 const EPS: f64 = 1e-10;
 const M_PI: f64 = PI;
@@ -165,7 +166,7 @@ pub struct Flam3IterHelper<'a> {
     tx: f64,
     ty: f64,
 
-    rc: &'a mut Flam3Rng,
+    rc: &'a mut IsaacRng,
 
     sumsq: Option<f64>,
     sqrt: Option<f64>,
@@ -176,7 +177,7 @@ pub struct Flam3IterHelper<'a> {
 }
 
 impl<'a> Flam3IterHelper<'a> {
-    fn new(coords: Coordinate, rc: &'a mut Flam3Rng) -> Self {
+    fn new(coords: Coordinate, rc: &'a mut IsaacRng) -> Self {
         Self {
             p0: 0.0,
             p1: 0.0,
@@ -440,7 +441,7 @@ impl Flam3Variation for variations::Julia {
     ) {
         let mut a = 0.5 * f.atan();
 
-        if f.rc.isaac_bit() {
+        if f.rc.next_bit() {
             a += M_PI;
         }
 
@@ -753,10 +754,10 @@ impl Flam3Variation for variations::Noise {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
+        let tmpr = f.rc.next_01() * 2.0 * M_PI;
         let (sinr, cosr) = sincos!(tmpr);
 
-        let r = self.weight * f.rc.isaac_01();
+        let r = self.weight * f.rc.next_01();
 
         f.p0 += f.tx * r * cosr;
         f.p1 += f.ty * r * sinr;
@@ -770,7 +771,7 @@ impl Flam3Variation for variations::Julian {
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
     ) {
-        let t_rnd = ((precalc.julian_r_n.unwrap()) * f.rc.isaac_01()).trunc();
+        let t_rnd = ((precalc.julian_r_n.unwrap()) * f.rc.next_01()).trunc();
 
         let tmpr = (f.atanyx() + 2.0 * M_PI * t_rnd) / self.power;
 
@@ -789,7 +790,7 @@ impl Flam3Variation for variations::Juliascope {
         _coeffs: &Affine,
         precalc: &mut VariationPrecalculations,
     ) {
-        let t_rnd = ((precalc.juliascope_r_n.unwrap()) * f.rc.isaac_01()).trunc();
+        let t_rnd = ((precalc.juliascope_r_n.unwrap()) * f.rc.next_01()).trunc();
 
         let tmpr = if ((t_rnd.i32()) & 1) == 0 {
             (2.0 * M_PI * t_rnd + f.atanyx()) / self.power
@@ -813,10 +814,10 @@ impl Flam3Variation for variations::Blur {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let tmpr = f.rc.isaac_01() * 2.0 * M_PI;
+        let tmpr = f.rc.next_01() * 2.0 * M_PI;
         let (sinr, cosr) = sincos!(tmpr);
 
-        let r = self.weight * f.rc.isaac_01();
+        let r = self.weight * f.rc.next_01();
 
         f.p0 += r * cosr;
         f.p1 += r * sinr;
@@ -830,11 +831,11 @@ impl Flam3Variation for variations::GaussianBlur {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let ang = f.rc.isaac_01() * 2.0 * M_PI;
+        let ang = f.rc.next_01() * 2.0 * M_PI;
         let (sina, cosa) = sincos!(ang);
 
-        let r = self.weight
-            * (f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() - 2.0);
+        let r =
+            self.weight * (f.rc.next_01() + f.rc.next_01() + f.rc.next_01() + f.rc.next_01() - 2.0);
 
         f.p0 += r * cosa;
         f.p1 += r * sina;
@@ -849,8 +850,8 @@ impl Flam3Variation for variations::RadialBlur {
         precalc: &mut VariationPrecalculations,
     ) {
         /* Get pseudo-gaussian */
-        let rnd = self.weight
-            * (f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() - 2.0);
+        let rnd =
+            self.weight * (f.rc.next_01() + f.rc.next_01() + f.rc.next_01() + f.rc.next_01() - 2.0);
 
         /* Calculate angle & zoom */
         let ra = f.sqrt();
@@ -870,9 +871,9 @@ impl Flam3Variation for variations::Pie {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        let sl = (f.rc.isaac_01() * self.slices + 0.5).trunc();
-        let a = self.rotation + 2.0 * M_PI * (sl + f.rc.isaac_01() * self.thickness) / self.slices;
-        let r = self.weight * f.rc.isaac_01();
+        let sl = (f.rc.next_01() * self.slices + 0.5).trunc();
+        let a = self.rotation + 2.0 * M_PI * (sl + f.rc.next_01() * self.thickness) / self.slices;
+        let r = self.weight * f.rc.next_01();
         let (sa, ca) = sincos!(a);
 
         f.p0 += r * ca;
@@ -956,7 +957,7 @@ impl Flam3Variation for variations::Arch {
          * it may change or even be removed in future versions of flam3.
          */
 
-        let ang = f.rc.isaac_01() * self.weight * M_PI;
+        let ang = f.rc.next_01() * self.weight * M_PI;
         let (sinr, cosr) = sincos!(ang);
 
         f.p0 += self.weight * sinr;
@@ -983,8 +984,8 @@ impl Flam3Variation for variations::Square {
         _coeffs: &Affine,
         _precalc: &mut VariationPrecalculations,
     ) {
-        f.p0 += self.weight * (f.rc.isaac_01() - 0.5);
-        f.p1 += self.weight * (f.rc.isaac_01() - 0.5);
+        f.p0 += self.weight * (f.rc.next_01() - 0.5);
+        f.p1 += self.weight * (f.rc.next_01() - 0.5);
     }
 }
 
@@ -1001,7 +1002,7 @@ impl Flam3Variation for variations::Rays {
          * it may change or even be removed in future versions of flam3.
          */
 
-        let ang = self.weight * f.rc.isaac_01() * M_PI;
+        let ang = self.weight * f.rc.next_01() * M_PI;
         let r = self.weight / (f.sumsq() + EPS);
         let tanr = self.weight * tan!(ang) * r;
 
@@ -1023,7 +1024,7 @@ impl Flam3Variation for variations::Blade {
          * it may change or even be removed in future versions of flam3.
          */
 
-        let r = f.rc.isaac_01() * self.weight * f.sqrt();
+        let r = f.rc.next_01() * self.weight * f.sqrt();
 
         let (sinr, cosr) = sincos!(r);
 
@@ -1073,7 +1074,7 @@ impl Flam3Variation for variations::Twintrian {
          * This code uses the variation self.weight  in a non-standard fashion, and
          * it may change or even be removed in future versions of flam3.
          */
-        let r = f.rc.isaac_01() * self.weight * f.sqrt();
+        let r = f.rc.next_01() * self.weight * f.sqrt();
 
         let (sinr, cosr) = sincos!(r);
         let mut diff = log10!(sqr!(sinr)) + cosr;
@@ -1135,7 +1136,7 @@ impl Flam3Variation for variations::SuperShape {
         let myrnd = self.rnd;
 
         let r = self.weight
-            * ((myrnd * f.rc.isaac_01() + (1.0 - myrnd) * f.sqrt()) - self.holes)
+            * ((myrnd * f.rc.next_01() + (1.0 - myrnd) * f.sqrt()) - self.holes)
             * pow!(t1 + t2, precalc.super_shape_pneg1_n1.unwrap())
             / f.sqrt();
 
@@ -1152,7 +1153,7 @@ impl Flam3Variation for variations::Flower {
         _precalc: &mut VariationPrecalculations,
     ) {
         let theta = f.atanyx();
-        let r = self.weight * (f.rc.isaac_01() - self.holes) * cos!(self.petals * theta) / f.sqrt();
+        let r = self.weight * (f.rc.next_01() - self.holes) * cos!(self.petals * theta) / f.sqrt();
 
         f.p0 += r * f.tx;
         f.p1 += r * f.ty;
@@ -1167,7 +1168,7 @@ impl Flam3Variation for variations::Conic {
         _precalc: &mut VariationPrecalculations,
     ) {
         let ct = f.tx / f.sqrt();
-        let r = self.weight * (f.rc.isaac_01() - self.holes) * self.eccentricity
+        let r = self.weight * (f.rc.next_01() - self.holes) * self.eccentricity
             / (1.0 + self.eccentricity * ct)
             / f.sqrt();
 
@@ -1187,8 +1188,8 @@ impl Flam3Variation for variations::Parabola {
 
         let (sr, cr) = sincos!(r);
 
-        f.p0 += self.height * self.weight * sqr!(sr) * f.rc.isaac_01();
-        f.p1 += self.width * self.weight * cr * f.rc.isaac_01();
+        f.p0 += self.height * self.weight * sqr!(sr) * f.rc.next_01();
+        f.p1 += self.width * self.weight * cr * f.rc.next_01();
     }
 }
 
@@ -1250,7 +1251,7 @@ impl Flam3Variation for variations::Boarders {
         let offset_x = f.tx - round_x;
         let offset_y = f.ty - round_y;
 
-        if f.rc.isaac_01() >= 0.75 {
+        if f.rc.next_01() >= 0.75 {
             f.p0 += self.weight * (offset_x * 0.5 + round_x);
             f.p1 += self.weight * (offset_y * 0.5 + round_y);
         } else if offset_x.abs() >= offset_y.abs() {
@@ -1340,7 +1341,7 @@ impl Flam3Variation for variations::Cpow {
         let va = 2.0 * M_PI / self.power;
         let vc = self.r / self.power;
         let vd = self.i / self.power;
-        let ang = vc * a + vd * lnr + va * (self.power * f.rc.isaac_01()).trunc();
+        let ang = vc * a + vd * lnr + va * (self.power * f.rc.next_01()).trunc();
 
         let m = self.weight * exp!(vc * lnr - vd * a);
 
@@ -1546,9 +1547,9 @@ impl Flam3Variation for variations::PreBlur {
         _precalc: &mut VariationPrecalculations,
     ) {
         /* Get pseudo-gaussian */
-        let rnd_g = self.weight
-            * (f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() + f.rc.isaac_01() - 2.0);
-        let rnd_a = f.rc.isaac_01() * 2.0 * M_PI;
+        let rnd_g =
+            self.weight * (f.rc.next_01() + f.rc.next_01() + f.rc.next_01() + f.rc.next_01() - 2.0);
+        let rnd_a = f.rc.next_01() * 2.0 * M_PI;
 
         let (sin_a, cos_a) = sincos!(rnd_a);
 
@@ -1781,7 +1782,7 @@ impl Flam3Variation for variations::WedgeJulia {
         precalc: &mut VariationPrecalculations,
     ) {
         let r = self.weight * pow!(f.sumsq(), precalc.wedge_julia_cn.unwrap());
-        let t_rnd = (precalc.wedge_julia_r_n.unwrap() * f.rc.isaac_01()).trunc();
+        let t_rnd = (precalc.wedge_julia_r_n.unwrap() * f.rc.next_01()).trunc();
         let mut a = (f.atanyx() + 2.0 * M_PI * t_rnd) / self.power;
         let c = ((self.count * a + M_PI) * M_1_PI * 0.5).floor();
 
@@ -2131,7 +2132,7 @@ pub fn apply_xform(
     p: &[f64; 4],
     q: &mut [f64; 4],
     precalc: &mut VariationPrecalculations,
-    rc: &mut Flam3Rng,
+    rc: &mut IsaacRng,
 ) -> bool {
     let s1 = xform.color_speed;
 
@@ -2163,8 +2164,8 @@ pub fn apply_xform(
 
     /* Check for badvalues and return randoms if bad */
     if badvalue(q[0]) || badvalue(q[1]) {
-        q[0] = rc.isaac_11();
-        q[1] = rc.isaac_11();
+        q[0] = rc.next_11();
+        q[1] = rc.next_11();
         false
     } else {
         true

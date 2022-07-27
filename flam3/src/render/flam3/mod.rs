@@ -13,7 +13,7 @@ use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
 pub(crate) use storage::{Accumulator, Bucket, RenderStorage, RenderStorageAtomicFloat};
 
 use self::filters::DensityEstimatorFilters;
-use self::{rect::render_rectangle, rng::Flam3Rng};
+use self::{rect::render_rectangle, rng::IsaacRng};
 
 use super::{Buffers, RenderOptions};
 
@@ -38,7 +38,7 @@ trait ClonableRng: RngCore + Clone {}
 
 #[derive(Clone)]
 struct Flam3Frame {
-    rng: Flam3Rng,
+    rng: IsaacRng,
     genomes: Vec<Genome>,
     num_threads: usize,
     pixel_aspect_ratio: f64,
@@ -98,7 +98,7 @@ impl Flam3IterConstants {
 }
 
 struct Flam3ThreadHelper {
-    rng: Flam3Rng, /* Thread-unique rng */
+    rng: IsaacRng, /* Thread-unique rng */
     cp: Genome,    /* Full copy of genome for use by the thread */
     fic: Flam3IterConstants,
 }
@@ -115,7 +115,7 @@ struct Flam3DeThreadHelper {
 
 pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage, String> {
     let rng = if let Some(ref seed) = options.isaac_seed {
-        Flam3Rng::from_seed(seed)
+        IsaacRng::from_str(seed)
     } else {
         Default::default()
     };
@@ -130,7 +130,7 @@ pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage
 fn render_internal<Ops: RenderStorage>(
     mut genome: Genome,
     options: RenderOptions,
-    rng: Flam3Rng,
+    rng: IsaacRng,
 ) -> Result<RgbaImage, String> {
     let num_strips = options.num_strips.unwrap_or(1);
     let num_threads = options.threads.unwrap_or(1);
@@ -281,8 +281,8 @@ impl TransformSelector {
         Ok(Self { xform_distrib })
     }
 
-    fn next<'a>(&mut self, cp: &'a Genome, rng: &mut Flam3Rng) -> &'a Transform {
-        let rand = rng.irand();
+    fn next<'a>(&mut self, cp: &'a Genome, rng: &mut IsaacRng) -> &'a Transform {
+        let rand = rng.next_u32();
         let dist_index = rand.usize() & CHOOSE_XFORM_GRAIN_M1;
         let xform_index = self.xform_distrib[dist_index];
 
