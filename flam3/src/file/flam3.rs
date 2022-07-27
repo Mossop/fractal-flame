@@ -465,11 +465,23 @@ fn write_start_element<W: Write>(
 }
 
 fn finish_element<R: Read>(parser: &mut EventReader<R>) -> Result<(), String> {
+    let mut depth: usize = 1;
     loop {
-        if let reader::XmlEvent::EndElement { .. } = read_xml_event!(parser) {
-            return Ok(());
+        match read_xml_event!(parser) {
+            reader::XmlEvent::StartElement { .. } => {
+                depth += 1;
+            }
+            reader::XmlEvent::EndElement { .. } => {
+                depth -= 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            _ => {}
         }
     }
+
+    Ok(())
 }
 
 fn skip_whitespace(chars: &[u8], mut pos: usize) -> usize {
@@ -880,8 +892,13 @@ fn parse_genome<R: Read>(
                     }
                     genome.final_transform = Some(transform);
                 }
-                "edit" => {}
-                unknown => log::warn!("Unknown flame element {}.", unknown),
+                "edit" => {
+                    finish_element(parser)?;
+                }
+                unknown => {
+                    log::warn!("Unknown flame element {}.", unknown);
+                    finish_element(parser)?;
+                }
             },
             reader::XmlEvent::EndElement { .. } => {
                 break;

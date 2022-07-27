@@ -122,4 +122,5 @@ mod render {
     render_test!(render101);
     render_test!(render102);
     render_test!(render103);
+    render_test!(render104);
 }

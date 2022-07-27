@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flame time="0" size="640 480" scale="120.2185" quality="50" center="0.2860080 0.0859840" supersample="1" passes="1" temporal_samples="1000" temporal_filter_type="exp" temporal_filter_exp="0" estimator_radius="9" estimator_minimum="0" estimator_curve="0.4" gamma="4" gamma_threshold="0.01" background="0 0 0" hue="0" vibrancy="1" brightness="4" rotate="0" contrast="1" interpolation_type="log" filter="0.5" filter_shape="gaussian" palette="102" palette_mode="step">
+    <symmetry kind="8"/>
+    <edit nick="Mossop" url="http://www.oxymoronical.com" comm="" date="Thu Nov 19 18:50:14 PST 2009">
+        <edit nick="" url="" date="Wed Nov 18 23:00:37 PST 2009"/>
+        <edit nick="" url="" date="Wed Nov 18 23:00:37 PST 2009"/>
+    </edit>
+    <xform weight="0.9999999999999996" coefs="0.8926640 0.7685230 -0.2729730 -0.7392670 -0.1498030 0.1868070" color="0.332085" symmetry="0" exponential="0.413589" conic="0.586411" conic_eccentricity="0.00282602" conic_holes="0.705848"/>
+    <xform weight="0.2" coefs="-0.6319300 0.0816738 -0.5402210 0.7449190 -0.4385010 0.1069960" color="0.59257" symmetry="0" exponential="0.413589" conic="0.586411" conic_eccentricity="0.119282" conic_holes="0.761026"/>
+    <xform weight="0.2" coefs="-0.2302420 0.1803340 0.2549020 0.3590990 0.9726770 0.1406510" color="0.07225520000000001" symmetry="0" exponential="0.413589" conic="0.586411" conic_eccentricity="0.782535" conic_holes="0.470414"/>
+    <xform weight="0.2" coefs="-0.2555040 0.2316340 0.5403190 -0.8259270 0.3669780 0.6450150" color="0.317568" symmetry="0" exponential="0.413589" conic="0.586411" conic_eccentricity="0.946985" conic_holes="0.274595"/>
+    <xform weight="0.2" coefs="-0.7061970 -0.4943980 -0.7847310 -0.8419740 0.6449560 -0.5461670" color="0.404813" symmetry="0" linear="0.59707" spherical="0.123806" fan2="0.279124" fan2_x="0.773813" fan2_y="0.6068440000000001"/>
+    <xform weight="0.25" coefs="-0.9722560 0.4778720 0.8532100 -0.6367350 -0.5312500 0.5187500" post="-0.6971520 -0.8566540 -0.7959170 -0.6070750 -0.9449190 -0.2155170" color="0.985038" symmetry="0" linear="0.656131" tangent="0.343869"/>
+    <xform weight="0.25" coefs="0.8139900 0.1623000 0.4749120 0.4016380 0.7122050 0.1787240" post="0.2209500 0.0453784 -0.0953439 0.6040610 0.4264220 0.3985700" color="0.987362" symmetry="0" spherical="0.168846" disc="0.8311539999999999"/>
+    <xform weight="0.25" coefs="0.8747220 -0.9099240 0.9117350 -0.4196000 -0.7340420 0.9156080" post="-0.4569650 -0.6260710 -0.0028263 0.8271580 0.6811730 -0.3000230" color="0.908655" symmetry="0" pie="0.820558" pie_slices="4.85542" pie_rotation="-6.02066" pie_thickness="0.600119" super_shape="0.179442" super_shape_rnd="0.944472" super_shape_m="0" super_shape_n1="18.0745" super_shape_n2="2.81714" super_shape_n3="2.81714" super_shape_holes="0"/>
+    <xform weight="0.7083333333333331" coefs="-0.9961260 0.9626350 -0.8920290 0.0815653 0.2841230 0.3072430" post="0.7028030 0.2488550 0.8833810 -0.3986840 0.2661280 0.4065310" color="0.432397" symmetry="0" horseshoe="0.131099" rings2="0.391126" rings2_val="1.5715" julian="0.388091" julian_dist="1" julian_power="2" super_shape="0.0896841" super_shape_rnd="0.809763" super_shape_m="0" super_shape_n1="38.7917" super_shape_n2="10.4595" super_shape_n3="10.4595" super_shape_holes="0"/>
+</flame>
