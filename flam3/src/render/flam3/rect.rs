@@ -1,22 +1,14 @@
-use std::cmp::max;
 use std::f64::consts::PI;
 
 use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
-use crate::math::{cos, ln, pow, sin, sqr};
-use crate::rect::Rect;
+use crate::math::{cos, pow, sin, sqr};
 use crate::render::flam3::filters::TemporalFilter;
-use crate::render::flam3::{Accumulator, Bucket};
-use crate::{
-    render::flam3::{rng::IsaacRng, DensityEstimatorFilters},
-    utils::PanicCast,
-};
+use crate::{render::flam3::DensityEstimatorFilters, utils::PanicCast};
 
+use super::storage::RenderStorage;
 use super::{
-    filters::create_spatial_filter,
-    flam3_interpolate,
-    thread::{de_thread, iter_thread},
-    Field, Flam3DeThreadHelper, Flam3Frame, Flam3IterConstants, Flam3ThreadHelper, RenderStorage,
+    filters::create_spatial_filter, flam3_interpolate, Field, Flam3Frame, Flam3IterConstants,
 };
 
 const WHITE_LEVEL: u32 = 255;
@@ -177,27 +169,19 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         0
     };
 
-    let mut fic = Flam3IterConstants::new(frame.clone());
+    let mut fic = Flam3IterConstants::new(&frame);
 
     //  Allocate the space required to render the image
-    let storage_width = supersample * image_width + 2 * gutter_width;
-    let storage_height = supersample * image_height + 2 * gutter_width;
+    let storage_width = (supersample * image_width + 2 * gutter_width).usize();
+    let storage_height = (supersample * image_height + 2 * gutter_width).usize();
 
-    let mut accumulate = Rect::<Accumulator<S::AccumulatorField>>::rectangle(
-        storage_width.usize(),
-        storage_height.usize(),
-    );
+    let mut storage = S::new(storage_width, storage_height);
 
     //  Batch loop - outermost
     for batch_num in 0..num_batches {
         log::trace!("Rendering batch {} of {}", batch_num, num_batches);
         let mut sample_density = 0.0;
         let de_time = frame.time + temporal_filter.time_offset(batch_num, 0);
-
-        let mut buckets = Rect::<Bucket<S::BucketField>>::rectangle(
-            storage_width.usize(),
-            storage_height.usize(),
-        );
 
         //  interpolate and get a control point
         //  ONLY FOR DENSITY FILTER WIDTH PURPOSES
@@ -316,24 +300,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             fic.dmap = dmap;
             fic.color_scalar = color_scalar;
 
-            //  Initialize the thread helper structures
-            let mut fth: Vec<Flam3ThreadHelper> = Vec::new();
-            for _ in 0..frame.num_threads {
-                fth.push(Flam3ThreadHelper {
-                    rng: IsaacRng::from_rng(&mut frame.rng),
-                    cp: cp.clone(),
-                    fic: fic.clone(),
-                });
-            }
-
-            for (_index, helper) in fth.drain(..).enumerate() {
-                // TODO actually use threads
-                iter_thread::<S>(helper, &mut buckets)?;
-            }
-
-            if fic.aborted {
-                return Err("Aborted".to_string());
-            }
+            storage.run_iteration_threads(&cp, &fic, &mut frame.rng, frame.num_threads)?;
 
             vibrancy += cp.vibrancy;
             gamma += cp.gamma;
@@ -359,57 +326,12 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 * sample_density
                 * temporal_filter.sumfilt);
 
-        if de_filters.filters.is_empty() {
-            for j in 0..buckets.height() {
-                for i in 0..buckets.width() {
-                    let mut pixel = buckets[(i, j)].accumulator();
-
-                    if pixel.alpha == 0.0 {
-                        continue;
-                    }
-
-                    let ls = (k1 * ln!(1.0 + pixel.alpha * k2)) / pixel.alpha;
-                    pixel *= ls;
-
-                    S::increase_accumulator(&mut accumulate[(i, j)], &pixel);
-                }
-            }
-        } else {
-            let myspan = buckets.height().u32() - 2 * (supersample - 1) + 1;
-            let thread_count = max(frame.num_threads, myspan.usize());
-            let swath = myspan / thread_count.u32();
-
-            //  Create the de helper structures
-            let mut deth: Vec<Flam3DeThreadHelper> = Vec::new();
-
-            for i in 0..thread_count {
-                let start_row = i.u32() * swath;
-                let end_row = if i == thread_count - 1 {
-                    buckets.height().u32() //myspan.i32();
-                } else {
-                    ((i.u32() + 1) * swath).u32()
-                };
-
-                //  Set up the contents of the helper structure
-                deth.push(Flam3DeThreadHelper {
-                    supersample,
-                    de_filters: de_filters.clone(),
-                    k1,
-                    k2,
-                    curve: cp.estimator_curve,
-                    start_row,
-                    end_row,
-                })
-            }
-
-            for thread_helper in deth {
-                // TODO Actually use threads
-                de_thread::<S>(thread_helper, &buckets, &mut accumulate);
-            }
-        }
+        storage.run_de_threads(de_filters, k1, k2, supersample, frame.num_threads);
     }
 
     log::trace!("Batches complete");
+
+    let mut accumulators = storage.accumulators();
 
     //  filter the accumulation buffer down into the image
     let g = 1.0 / (gamma / vib_gam_n);
@@ -427,9 +349,9 @@ pub(super) fn render_rectangle<S: RenderStorage>(
     if frame.earlyclip {
         log::trace!("Applying gamma correction and clipping");
 
-        for j in 0..accumulate.height() {
-            for i in 0..accumulate.width() {
-                let accumulator = &mut accumulate[(i, j)];
+        for j in 0..storage_height {
+            for i in 0..storage_width {
+                let accumulator = &mut accumulators[(i, j)];
 
                 let (alpha, ls) = if accumulator.alpha.f64() <= 0.0 {
                     (0.0, 0.0)
@@ -493,7 +415,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             for ii in 0..spatial_filter.width() {
                 for jj in 0..spatial_filter.height() {
                     let k = spatial_filter[(ii, jj)];
-                    let ac = &mut accumulate[(x + ii, y + jj)];
+                    let ac = &mut accumulators[(x + ii, y + jj)];
 
                     t[0] += k * ac.red.f64();
                     t[1] += k * ac.green.f64();

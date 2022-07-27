@@ -477,6 +477,7 @@ impl DensityEstimatorFilter {
 
 #[derive(Default, Debug, Clone)]
 pub(super) struct DensityEstimatorFilters {
+    pub curve: f64,
     pub max_filtered_counts: f64,
     pub filters: Vec<DensityEstimatorFilter>,
 }
@@ -488,7 +489,10 @@ impl DensityEstimatorFilters {
         curve: f64,
         supersample: u32,
     ) -> Result<DensityEstimatorFilters, String> {
-        let mut de_filters = DensityEstimatorFilters::default();
+        let mut de_filters = DensityEstimatorFilters {
+            curve,
+            ..Default::default()
+        };
 
         if curve <= 0.0 {
             return Err("Estimator curve must be > 0".to_string());

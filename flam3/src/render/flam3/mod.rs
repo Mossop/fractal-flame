@@ -10,9 +10,10 @@ use rand::RngCore;
 
 use crate::math::{ln, pow};
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
-pub(crate) use storage::{Accumulator, Bucket, RenderStorage, RenderStorageAtomicFloat};
+pub(crate) use storage::Accumulator;
 
 use self::filters::DensityEstimatorFilters;
+use self::storage::{RenderStorage, RenderStorageAtomicFloat};
 use self::{rect::render_rectangle, rng::IsaacRng};
 
 use super::{Buffers, RenderOptions};
@@ -36,7 +37,6 @@ enum Field {
 
 trait ClonableRng: RngCore + Clone {}
 
-#[derive(Clone)]
 struct Flam3Frame {
     rng: IsaacRng,
     genomes: Vec<Genome>,
@@ -62,18 +62,17 @@ struct Flam3IterConstants {
     cmap_size: usize,
     dmap: Palette,     //  palette
     color_scalar: f64, //  <1.0 if non-uniform motion blur is set
-    badvals: u32,      //  accumulates all badvalue resets
     batch_size: u32,
     temporal_sample_num: u32,
     ntemporal_samples: u32,
     batch_num: u32,
     nbatches: u32,
-    aborted: bool,
-    spec: Flam3Frame,
+    earlyclip: bool,
+    sub_batch_size: u32,
 }
 
 impl Flam3IterConstants {
-    fn new(frame: Flam3Frame) -> Self {
+    fn new(frame: &Flam3Frame) -> Self {
         Self {
             bounds: Default::default(),
             rot: Default::default(),
@@ -85,22 +84,15 @@ impl Flam3IterConstants {
             cmap_size: 256,
             dmap: Default::default(),
             color_scalar: Default::default(),
-            badvals: Default::default(),
             batch_size: Default::default(),
             temporal_sample_num: Default::default(),
             ntemporal_samples: Default::default(),
             batch_num: Default::default(),
             nbatches: Default::default(),
-            aborted: Default::default(),
-            spec: frame,
+            earlyclip: frame.earlyclip,
+            sub_batch_size: frame.sub_batch_size,
         }
     }
-}
-
-struct Flam3ThreadHelper {
-    rng: IsaacRng, /* Thread-unique rng */
-    cp: Genome,    /* Full copy of genome for use by the thread */
-    fic: Flam3IterConstants,
 }
 
 struct Flam3DeThreadHelper {
@@ -127,7 +119,7 @@ pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage
     }
 }
 
-fn render_internal<Ops: RenderStorage>(
+fn render_internal<S: RenderStorage>(
     mut genome: Genome,
     options: RenderOptions,
     rng: IsaacRng,
@@ -203,7 +195,7 @@ fn render_internal<Ops: RenderStorage>(
             bytes_per_channel: options.bytes_per_channel,
         };
 
-        render_rectangle::<Ops>(frame, buffer, Field::Both)?;
+        render_rectangle::<S>(frame, buffer, Field::Both)?;
     }
 
     log::trace!("Strips complete");
