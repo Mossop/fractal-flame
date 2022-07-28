@@ -5,11 +5,10 @@ use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 use crate::math::{cos, pow, sin, sqr};
 use crate::render::flam3::filters::TemporalFilter;
 use crate::{render::flam3::DensityEstimatorFilters, utils::PanicCast};
+use crate::{Coordinate, Dimension};
 
 use super::storage::RenderStorage;
-use super::{
-    filters::create_spatial_filter, flam3_interpolate, Field, Flam3Frame, Flam3IterConstants,
-};
+use super::{filters::create_spatial_filter, flam3_interpolate, Field, Flam3IterConstants, Frame};
 
 const WHITE_LEVEL: u32 = 255;
 const PREFILTER_WHITE: u32 = 255;
@@ -87,7 +86,7 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
 }
 
 pub(super) fn render_rectangle<S: RenderStorage>(
-    mut frame: Flam3Frame,
+    mut frame: Frame,
     mut buffer: &mut [u8],
     field: Field,
 ) -> Result<(), String> {
@@ -169,7 +168,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         0
     };
 
-    let mut fic = Flam3IterConstants::new(&frame);
+    let mut fic = Flam3IterConstants::new(&frame, &cp);
 
     //  Allocate the space required to render the image
     let storage_width = (supersample * image_width + 2 * gutter_width).usize();
@@ -263,12 +262,18 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             let t1 = gutter_width.f64() / (supersample.f64() * ppuy).f64();
             let corner0 = cp.center.x - image_width.f64() / ppux / 2.0;
             let corner1 = cp.center.y - image_height.f64() / ppuy / 2.0;
-            fic.bounds[0] = corner0 - t0;
-            fic.bounds[1] = corner1 - t1 + shift;
-            fic.bounds[2] = corner0 + image_width.f64() / ppux + t0;
-            fic.bounds[3] = corner1 + image_height.f64() / ppuy + t1 + shift;
-            fic.size[0] = 1.0 / (fic.bounds[2] - fic.bounds[0]);
-            fic.size[1] = 1.0 / (fic.bounds[3] - fic.bounds[1]);
+            fic.bounds[0] = Coordinate {
+                x: corner0 - t0,
+                y: corner1 - t1 + shift,
+            };
+            fic.bounds[1] = Coordinate {
+                x: corner0 + image_width.f64() / ppux + t0,
+                y: corner1 + image_height.f64() / ppuy + t1 + shift,
+            };
+            let size = Dimension {
+                width: 1.0 / (fic.bounds[1].x - fic.bounds[0].x),
+                height: 1.0 / (fic.bounds[1].y - fic.bounds[0].y),
+            };
 
             let rot_x = cos!(cp.rotate * 2.0 * PI / 360.0);
             let rot_y = -sin!(cp.rotate * 2.0 * PI / 360.0);
@@ -279,10 +284,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             ]
             .into();
 
-            fic.ws0 = storage_width.f64() * fic.size[0];
-            fic.wb0s0 = fic.ws0 * fic.bounds[0];
-            fic.hs1 = storage_height.f64() * fic.size[1];
-            fic.hb1s1 = fic.hs1 * fic.bounds[1];
+            fic.ws0 = storage_width.f64() * size.width;
+            fic.wb0s0 = fic.ws0 * fic.bounds[0].x;
+            fic.hs1 = storage_height.f64() * size.height;
+            fic.hb1s1 = fic.hs1 * fic.bounds[0].y;
 
             //  number of samples is based only on the output image size
             let nsamples = sample_density * image_width.f64() * image_height.f64();

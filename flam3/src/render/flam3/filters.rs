@@ -5,7 +5,7 @@ use crate::rect::Rect;
 use crate::utils::fastdiv;
 use crate::{utils::PanicCast, SpatialFilter, TemporalFilterType};
 
-use super::{Field, Flam3Frame};
+use super::{Field, Frame};
 
 const FLAM3_MITCHELL_B: f64 = 1.0 / 3.0;
 const FLAM3_MITCHELL_C: f64 = 1.0 / 3.0;
@@ -234,7 +234,7 @@ fn normalize_vector(v: &mut Rect<f64>) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn create_spatial_filter(frame: &Flam3Frame, field: Field) -> Result<Rect<f64>, String> {
+pub(super) fn create_spatial_filter(frame: &Frame, field: Field) -> Result<Rect<f64>, String> {
     let spatial_filter = frame.genomes[0].spatial_filter;
     let supersample = frame.genomes[0].spatial_supersample;
     let filter_radius = frame.genomes[0].spatial_filter_radius;

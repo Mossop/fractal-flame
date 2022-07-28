@@ -11,7 +11,8 @@ use super::{
     filters::DensityEstimatorFilters,
     rng::IsaacRng,
     thread::{de_thread, empty_de_thread, iter_thread, DensityEstimationStorage, IterationStorage},
-    Flam3DeThreadHelper, Flam3IterConstants,
+    variations::VariationPrecalculations,
+    Flam3DeThreadHelper, Flam3IterConstants, TransformSelector,
 };
 
 #[derive(Clone)]
@@ -197,8 +198,20 @@ impl RenderStorage for RenderStorageAtomicFloat {
         rng: &mut IsaacRng,
         thread_count: usize,
     ) -> Result<(), String> {
+        let xform_distrib = TransformSelector::new(cp)?;
+        let final_xform = cp
+            .final_transform
+            .as_ref()
+            .map(|xf| (xf.clone(), VariationPrecalculations::new(xf)));
+
         for _i in 0..thread_count {
-            iter_thread(cp, ficp, &mut IsaacRng::from_rng(rng), self)?;
+            iter_thread(
+                ficp,
+                &xform_distrib,
+                &final_xform,
+                &mut IsaacRng::from_rng(rng),
+                self,
+            )?;
         }
 
         Ok(())

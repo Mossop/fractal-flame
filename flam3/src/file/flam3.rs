@@ -54,7 +54,7 @@ impl XmlAttribute for Affine {
     }
 }
 
-impl XmlAttribute for Dimension {
+impl XmlAttribute for Dimension<u32> {
     fn from_attribute(list: &str) -> Result<Self, String> {
         let values = try_map(list.split(' '), parse)?;
 
@@ -73,7 +73,7 @@ impl XmlAttribute for Dimension {
     }
 }
 
-impl XmlAttribute for Coordinate {
+impl XmlAttribute for Coordinate<f64> {
     fn from_attribute(list: &str) -> Result<Self, String> {
         let values = try_map(list.split(' '), parse)?;
 

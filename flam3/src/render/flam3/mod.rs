@@ -10,10 +10,12 @@ use rand::RngCore;
 
 use crate::math::{ln, pow};
 use crate::{utils::PanicCast, Affine, Genome, Palette, Transform};
+use crate::{Coordinate, PaletteMode};
 pub(crate) use storage::Accumulator;
 
 use self::filters::DensityEstimatorFilters;
 use self::storage::{RenderStorage, RenderStorageAtomicFloat};
+use self::variations::VariationPrecalculations;
 use self::{rect::render_rectangle, rng::IsaacRng};
 
 use super::{Buffers, RenderOptions};
@@ -37,7 +39,7 @@ enum Field {
 
 trait ClonableRng: RngCore + Clone {}
 
-struct Flam3Frame {
+struct Frame {
     rng: IsaacRng,
     genomes: Vec<Genome>,
     num_threads: usize,
@@ -52,9 +54,8 @@ struct Flam3Frame {
 
 #[derive(Clone)]
 struct Flam3IterConstants {
-    bounds: [f64; 4], //  Corner coords of viewable area
-    rot: Affine,      //  Rotation transformation
-    size: [f64; 2],
+    bounds: [Coordinate<f64>; 2], //  Corner coords of viewable area
+    rot: Affine,                  //  Rotation transformation
     ws0: f64,
     wb0s0: f64,
     hs1: f64,
@@ -69,14 +70,16 @@ struct Flam3IterConstants {
     nbatches: u32,
     earlyclip: bool,
     sub_batch_size: u32,
+    rotate: f64,
+    rot_center: Coordinate<f64>,
+    palette_mode: PaletteMode,
 }
 
 impl Flam3IterConstants {
-    fn new(frame: &Flam3Frame) -> Self {
+    fn new(frame: &Frame, cp: &Genome) -> Self {
         Self {
             bounds: Default::default(),
             rot: Default::default(),
-            size: Default::default(),
             ws0: Default::default(),
             wb0s0: Default::default(),
             hs1: Default::default(),
@@ -91,6 +94,9 @@ impl Flam3IterConstants {
             nbatches: Default::default(),
             earlyclip: frame.earlyclip,
             sub_batch_size: frame.sub_batch_size,
+            rotate: cp.rotate,
+            rot_center: cp.rot_center.clone(),
+            palette_mode: cp.palette_mode,
         }
     }
 }
@@ -182,7 +188,7 @@ fn render_internal<S: RenderStorage>(
                 / (genome.pixels_per_unit * zoom_scale);
         }
 
-        let frame = Flam3Frame {
+        let frame = Frame {
             rng: rng.clone(),
             genomes: vec![genome.clone()],
             time: 0.0,
@@ -211,12 +217,13 @@ fn flam3_interpolate(genomes: &[Genome], _time: f64, _stagger: f64) -> Result<Ge
     unimplemented!();
 }
 
-fn flam3_create_chaos_distrib(cp: &Genome, xform_distrib: &mut [usize]) -> Result<(), String> {
-    let num_std = cp.transforms.len();
-
+fn flam3_create_chaos_distrib(
+    transforms: &[Transform],
+    xform_distrib: &mut [usize],
+) -> Result<(), String> {
     let mut dr = 0.0;
-    for i in 0..num_std {
-        let d = cp.transforms[i].density;
+    for xform in transforms {
+        let d = xform.density;
 
         if d < 0.0 {
             return Err("transform weight must be non-negative".to_string());
@@ -232,14 +239,14 @@ fn flam3_create_chaos_distrib(cp: &Genome, xform_distrib: &mut [usize]) -> Resul
     dr /= CHOOSE_XFORM_GRAIN.f64();
 
     let mut j = 0;
-    let mut t = cp.transforms[0].density;
+    let mut t = transforms[0].density;
 
     let mut r = 0.0;
     for distrib_val in xform_distrib.iter_mut().take(CHOOSE_XFORM_GRAIN) {
         while r >= t {
             j += 1;
 
-            t += cp.transforms[j].density;
+            t += transforms[j].density;
         }
 
         *distrib_val = j;
@@ -251,6 +258,8 @@ fn flam3_create_chaos_distrib(cp: &Genome, xform_distrib: &mut [usize]) -> Resul
 
 struct TransformSelector {
     xform_distrib: Vec<usize>,
+    xforms: Vec<Transform>,
+    precalcs: Vec<VariationPrecalculations>,
 }
 
 impl TransformSelector {
@@ -258,7 +267,7 @@ impl TransformSelector {
         let mut xform_distrib = vec![0_usize; CHOOSE_XFORM_GRAIN];
 
         /* First, set up the first row of the xform_distrib (raw weights) */
-        flam3_create_chaos_distrib(cp, &mut xform_distrib)?;
+        flam3_create_chaos_distrib(&cp.transforms, &mut xform_distrib)?;
 
         /* Check for non-unity chaos */
         let chaos_enable = false;
@@ -266,18 +275,29 @@ impl TransformSelector {
         if chaos_enable {
             /* Now set up a row for each of the xforms */
             for i in 0..cp.transforms.len() {
-                flam3_create_chaos_distrib(cp, &mut xform_distrib[CHOOSE_XFORM_GRAIN * i..])?;
+                flam3_create_chaos_distrib(
+                    &cp.transforms,
+                    &mut xform_distrib[CHOOSE_XFORM_GRAIN * i..],
+                )?;
             }
         }
 
-        Ok(Self { xform_distrib })
+        Ok(Self {
+            xform_distrib,
+            xforms: cp.transforms.clone(),
+            precalcs: cp
+                .transforms
+                .iter()
+                .map(VariationPrecalculations::new)
+                .collect(),
+        })
     }
 
-    fn next<'a>(&mut self, cp: &'a Genome, rng: &mut IsaacRng) -> &'a Transform {
+    fn next<'a>(&'a self, rng: &mut IsaacRng) -> (&'a Transform, &'a VariationPrecalculations) {
         let rand = rng.next_u32();
         let dist_index = rand.usize() & CHOOSE_XFORM_GRAIN_M1;
         let xform_index = self.xform_distrib[dist_index];
 
-        &cp.transforms[xform_index]
+        (&self.xforms[xform_index], &self.precalcs[xform_index])
     }
 }

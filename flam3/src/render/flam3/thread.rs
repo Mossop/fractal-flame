@@ -1,43 +1,23 @@
-use std::collections::HashMap;
-
 use palette::{ComponentWise, Srgba};
-use uuid::Uuid;
 
 use crate::math::{ln, pow, sqr};
 use crate::render::flam3::rng::Flam3Rng;
-use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, Genome, PaletteMode, Transform};
+use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, PaletteMode, Transform};
 
-use super::{
-    rng::IsaacRng,
-    variations::{apply_xform, VariationPrecalculations},
-    Flam3DeThreadHelper, TransformSelector,
-};
+use super::variations::VariationPrecalculations;
+use super::{rng::IsaacRng, variations::apply_xform, Flam3DeThreadHelper, TransformSelector};
 use super::{Accumulator, Flam3IterConstants};
 
 const FUSE_27: u32 = 15;
 const FUSE_28: u32 = 100;
 
-#[derive(Default)]
-struct TransformPrecalcs {
-    precalcs: HashMap<Uuid, VariationPrecalculations>,
-}
-
-impl TransformPrecalcs {
-    fn get(&mut self, transform: &Transform) -> &mut VariationPrecalculations {
-        let id = transform.id;
-        self.precalcs
-            .entry(id)
-            .or_insert_with(|| VariationPrecalculations::new(transform))
-    }
-}
-
 /// Runs a set of iterations mutating samples after a set of iterations have been skipped.
 fn flam3_iterate(
-    cp: &Genome,
     iterations: u32,
     skip_iterations: u32,
     samples: &mut [f64],
-    selector: &mut TransformSelector,
+    selector: &TransformSelector,
+    final_xform: &Option<(Transform, VariationPrecalculations)>,
     rng: &mut IsaacRng,
 ) -> u32 {
     let mut consecutive_failures = 0;
@@ -45,12 +25,9 @@ fn flam3_iterate(
 
     let mut p = [samples[0], samples[1], samples[2], samples[3]];
 
-    let mut precalcs = TransformPrecalcs::default();
-
     let mut iteration = -(skip_iterations.i32());
     while iteration < (iterations.i32()) {
-        let xform = selector.next(cp, rng);
-        let precalc = precalcs.get(xform);
+        let (xform, precalc) = selector.next(rng);
 
         let mut q = [0.0; 4];
         if !apply_xform(xform, &p, &mut q, precalc, rng) {
@@ -68,9 +45,8 @@ fn flam3_iterate(
 
         p = q;
 
-        if let Some(ref xform) = cp.final_transform {
+        if let Some((xform, ref precalc)) = final_xform {
             if xform.opacity == 1.0 || rng.next_01() < xform.opacity {
-                let precalc = precalcs.get(xform);
                 apply_xform(xform, &p, &mut q, precalc, rng);
                 /* Keep the opacity from the original xform */
                 q[3] = p[3];
@@ -95,8 +71,9 @@ pub(super) trait IterationStorage {
 }
 
 pub(super) fn iter_thread<S: IterationStorage>(
-    cp: &Genome,
     ficp: &Flam3IterConstants,
+    xform_distrib: &TransformSelector,
+    final_xform: &Option<(Transform, VariationPrecalculations)>,
     rng: &mut IsaacRng,
     storage: &mut S,
 ) -> Result<(), String> {
@@ -105,7 +82,6 @@ pub(super) fn iter_thread<S: IterationStorage>(
     let cmap_size_m1 = cmap_size - 1;
 
     let fuse = if ficp.earlyclip { FUSE_28 } else { FUSE_27 };
-    let mut xform_distrib = TransformSelector::new(cp)?;
     let mut iter_storage = vec![0.0; 4 * ficp.sub_batch_size.usize()];
     let mut badvals: u32 = 0;
 
@@ -125,11 +101,11 @@ pub(super) fn iter_thread<S: IterationStorage>(
 
         /* Execute iterations */
         let badcount = flam3_iterate(
-            cp,
             sub_batch_size,
             fuse,
             &mut iter_storage,
-            &mut xform_distrib,
+            xform_distrib,
+            final_xform,
             rng,
         );
 
@@ -140,18 +116,18 @@ pub(super) fn iter_thread<S: IterationStorage>(
         for j in (0..(sub_batch_size.usize() * 4)).step_by(4) {
             let p = &iter_storage[j..j + 4];
 
-            let (p0, p1) = if cp.rotate != 0.0 {
+            let (p0, p1) = if ficp.rotate != 0.0 {
                 ficp.rot
-                    .transform((&[p[0] - cp.rot_center.x, p[1] - cp.rot_center.y]).into())
+                    .transform((&[p[0] - ficp.rot_center.x, p[1] - ficp.rot_center.y]).into())
                     .into()
             } else {
                 (p[0], p[1])
             };
 
-            if p0 >= ficp.bounds[0]
-                && p1 >= ficp.bounds[1]
-                && p0 <= ficp.bounds[2]
-                && p1 <= ficp.bounds[3]
+            if p0 >= ficp.bounds[0].x
+                && p1 >= ficp.bounds[0].y
+                && p0 <= ficp.bounds[1].x
+                && p1 <= ficp.bounds[1].y
             {
                 let logvis = p[3];
 
@@ -163,7 +139,7 @@ pub(super) fn iter_thread<S: IterationStorage>(
                 let dbl_index0 = p[2] * cmap_size.f64();
                 let color_index0 = dbl_index0.i32();
 
-                let interpcolor = if PaletteMode::Linear == cp.palette_mode {
+                let interpcolor = if PaletteMode::Linear == ficp.palette_mode {
                     let (cindex, dbl_frac) = if color_index0 < 0 {
                         (0, 0.0)
                     } else if color_index0 >= cmap_size_m1 {

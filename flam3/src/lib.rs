@@ -16,19 +16,22 @@ use uuid::Uuid;
 use variations::Var;
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Dimension {
-    pub width: u32,
-    pub height: u32,
+pub struct Dimension<T> {
+    pub width: T,
+    pub height: T,
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Coordinate {
-    pub x: f64,
-    pub y: f64,
+pub struct Coordinate<T> {
+    pub x: T,
+    pub y: T,
 }
 
-impl From<&[f64; 2]> for Coordinate {
-    fn from(tuple: &[f64; 2]) -> Self {
+impl<T> From<&[T; 2]> for Coordinate<T>
+where
+    T: Copy,
+{
+    fn from(tuple: &[T; 2]) -> Self {
         Self {
             x: tuple[0],
             y: tuple[1],
@@ -36,8 +39,11 @@ impl From<&[f64; 2]> for Coordinate {
     }
 }
 
-impl From<&[f64; 4]> for Coordinate {
-    fn from(tuple: &[f64; 4]) -> Self {
+impl<T> From<&[T; 4]> for Coordinate<T>
+where
+    T: Copy,
+{
+    fn from(tuple: &[T; 4]) -> Self {
         Self {
             x: tuple[0],
             y: tuple[1],
@@ -45,8 +51,8 @@ impl From<&[f64; 4]> for Coordinate {
     }
 }
 
-impl From<Coordinate> for (f64, f64) {
-    fn from(c: Coordinate) -> Self {
+impl<T> From<Coordinate<T>> for (T, T) {
+    fn from(c: Coordinate<T>) -> Self {
         (c.x, c.y)
     }
 }
@@ -170,7 +176,7 @@ pub struct Affine {
 }
 
 impl Affine {
-    pub fn transform(&self, p: Coordinate) -> Coordinate {
+    pub fn transform(&self, p: Coordinate<f64>) -> Coordinate<f64> {
         Coordinate {
             x: self.coefficients[0][0] * p.x
                 + self.coefficients[1][0] * p.y
@@ -270,11 +276,11 @@ pub struct Genome {
     pub palette_index: Option<usize>,
 
     /// The size of the generated image in pixels.
-    pub size: Dimension,
+    pub size: Dimension<u32>,
     /// The center of the image, coordinates must be in the range [-1,1].
-    pub center: Coordinate,
+    pub center: Coordinate<f64>,
     /// The center point of any rotation.
-    pub rot_center: Coordinate,
+    pub rot_center: Coordinate<f64>,
     /// Rotation in degrees.
     pub rotate: f64,
     pub pixels_per_unit: f64,
