@@ -59,46 +59,14 @@ struct Flam3IterConstants {
     ws0: f64,
     wb0s0: f64,
     hs1: f64,
-    hb1s1: f64, //  shortcuts for indexing
-    cmap_size: usize,
-    dmap: Palette,     //  palette
-    color_scalar: f64, //  <1.0 if non-uniform motion blur is set
+    hb1s1: f64,    //  shortcuts for indexing
+    dmap: Palette, //  palette
     batch_size: u32,
-    temporal_sample_num: u32,
-    ntemporal_samples: u32,
-    batch_num: u32,
-    nbatches: u32,
     earlyclip: bool,
     sub_batch_size: u32,
     rotate: f64,
     rot_center: Coordinate<f64>,
     palette_mode: PaletteMode,
-}
-
-impl Flam3IterConstants {
-    fn new(frame: &Frame, cp: &Genome) -> Self {
-        Self {
-            bounds: Default::default(),
-            rot: Default::default(),
-            ws0: Default::default(),
-            wb0s0: Default::default(),
-            hs1: Default::default(),
-            hb1s1: Default::default(),
-            cmap_size: 256,
-            dmap: Default::default(),
-            color_scalar: Default::default(),
-            batch_size: Default::default(),
-            temporal_sample_num: Default::default(),
-            ntemporal_samples: Default::default(),
-            batch_num: Default::default(),
-            nbatches: Default::default(),
-            earlyclip: frame.earlyclip,
-            sub_batch_size: frame.sub_batch_size,
-            rotate: cp.rotate,
-            rot_center: cp.rot_center.clone(),
-            palette_mode: cp.palette_mode,
-        }
-    }
 }
 
 struct Flam3DeThreadHelper {

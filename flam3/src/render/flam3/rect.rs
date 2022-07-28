@@ -168,8 +168,6 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         0
     };
 
-    let mut fic = Flam3IterConstants::new(&frame, &cp);
-
     //  Allocate the space required to render the image
     let storage_width = (supersample * image_width + 2 * gutter_width).usize();
     let storage_height = (supersample * image_height + 2 * gutter_width).usize();
@@ -223,19 +221,6 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             //  Interpolate and get a control point
             let cp = flam3_interpolate(&frame.genomes, temporal_sample_time, 0.0)?;
 
-            let dmap: Vec<Srgba<f64>> = cp
-                .palette
-                .iter()
-                .map(|color| {
-                    Srgba::<f64>::from_components((
-                        color.red * WHITE_LEVEL.f64() * color_scalar,
-                        color.green * WHITE_LEVEL.f64() * color_scalar,
-                        color.blue * WHITE_LEVEL.f64() * color_scalar,
-                        color.alpha * WHITE_LEVEL.f64() * color_scalar,
-                    ))
-                })
-                .collect();
-
             //  compute camera
             if cp.sample_density <= 0.0 {
                 return Err("Sample density (quality) must be greater than zero".to_string());
@@ -262,32 +247,29 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             let t1 = gutter_width.f64() / (supersample.f64() * ppuy).f64();
             let corner0 = cp.center.x - image_width.f64() / ppux / 2.0;
             let corner1 = cp.center.y - image_height.f64() / ppuy / 2.0;
-            fic.bounds[0] = Coordinate {
-                x: corner0 - t0,
-                y: corner1 - t1 + shift,
-            };
-            fic.bounds[1] = Coordinate {
-                x: corner0 + image_width.f64() / ppux + t0,
-                y: corner1 + image_height.f64() / ppuy + t1 + shift,
-            };
+            let bounds = [
+                Coordinate {
+                    x: corner0 - t0,
+                    y: corner1 - t1 + shift,
+                },
+                Coordinate {
+                    x: corner0 + image_width.f64() / ppux + t0,
+                    y: corner1 + image_height.f64() / ppuy + t1 + shift,
+                },
+            ];
             let size = Dimension {
-                width: 1.0 / (fic.bounds[1].x - fic.bounds[0].x),
-                height: 1.0 / (fic.bounds[1].y - fic.bounds[0].y),
+                width: 1.0 / (bounds[1].x - bounds[0].x),
+                height: 1.0 / (bounds[1].y - bounds[0].y),
             };
 
             let rot_x = cos!(cp.rotate * 2.0 * PI / 360.0);
             let rot_y = -sin!(cp.rotate * 2.0 * PI / 360.0);
-            fic.rot = [
+            let rot = [
                 [rot_x, -rot_y],
                 [rot_y, rot_x],
                 [cp.rot_center.x, cp.rot_center.y],
             ]
             .into();
-
-            fic.ws0 = storage_width.f64() * size.width;
-            fic.wb0s0 = fic.ws0 * fic.bounds[0].x;
-            fic.hs1 = storage_height.f64() * size.height;
-            fic.hb1s1 = fic.hs1 * fic.bounds[0].y;
 
             //  number of samples is based only on the output image size
             let nsamples = sample_density * image_width.f64() * image_height.f64();
@@ -295,15 +277,37 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             //  how many of these samples are rendered in this loop?
             let batch_size = nsamples / (num_batches * num_temporal_samples).f64();
 
-            //  Fill in the iter constants
-            fic.batch_size = (batch_size / frame.num_threads.f64()).u32();
-            fic.temporal_sample_num = temporal_sample_num;
-            fic.ntemporal_samples = num_temporal_samples;
-            fic.batch_num = batch_num;
-            fic.nbatches = num_batches;
+            let dmap = cp
+                .palette
+                .iter()
+                .map(|color| {
+                    Srgba::<f64>::from_components((
+                        color.red * WHITE_LEVEL.f64() * color_scalar,
+                        color.green * WHITE_LEVEL.f64() * color_scalar,
+                        color.blue * WHITE_LEVEL.f64() * color_scalar,
+                        color.alpha * WHITE_LEVEL.f64() * color_scalar,
+                    ))
+                })
+                .collect();
 
-            fic.dmap = dmap;
-            fic.color_scalar = color_scalar;
+            let ws0 = storage_width.f64() * size.width;
+            let hs1 = storage_height.f64() * size.height;
+
+            let fic = Flam3IterConstants {
+                rot,
+                ws0,
+                wb0s0: ws0 * bounds[0].x,
+                hs1,
+                hb1s1: hs1 * bounds[0].y,
+                bounds,
+                dmap,
+                batch_size: (batch_size / frame.num_threads.f64()).u32(),
+                earlyclip: frame.earlyclip,
+                sub_batch_size: frame.sub_batch_size,
+                rotate: cp.rotate,
+                rot_center: cp.rot_center.clone(),
+                palette_mode: cp.palette_mode,
+            };
 
             storage.run_iteration_threads(&cp, &fic, &mut frame.rng, frame.num_threads)?;
 

@@ -78,8 +78,8 @@ pub(super) fn iter_thread<S: IterationStorage>(
     storage: &mut S,
 ) -> Result<(), String> {
     log::trace!("Starting iteration thread");
-    let cmap_size = ficp.cmap_size.i32();
-    let cmap_size_m1 = cmap_size - 1;
+    let cmap_size = ficp.dmap.len().f64();
+    let cmap_size_m1 = ficp.dmap.len().i32() - 1;
 
     let fuse = if ficp.earlyclip { FUSE_28 } else { FUSE_27 };
     let mut iter_storage = vec![0.0; 4 * ficp.sub_batch_size.usize()];
