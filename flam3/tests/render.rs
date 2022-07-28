@@ -3,10 +3,19 @@ mod utils;
 // These tests only pass with the libm feature enabled.
 #[cfg(feature = "libm")]
 mod render {
+    use flam3::RenderOptions;
+
     use super::utils::run_test;
 
     fn do_test(name: &str) {
-        run_test("render", name, Default::default());
+        run_test(
+            "render",
+            name,
+            RenderOptions {
+                threads: Some(1),
+                ..Default::default()
+            },
+        );
     }
 
     macro_rules! render_test {

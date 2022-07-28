@@ -33,6 +33,7 @@ mod options {
     }
 
     render_test!(earlyclip, {
+        threads: Some(1),
         earlyclip: true,
     });
 }

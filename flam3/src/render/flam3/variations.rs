@@ -33,8 +33,8 @@ macro_rules! upsert {
     }}
 }
 
-#[derive(Default)]
-pub struct VariationPrecalculations {
+#[derive(Default, Clone)]
+pub(crate) struct VariationPrecalculations {
     pub persp_vsin: f64,
     pub persp_vfcos: f64,
     pub julian_r_n: f64,
@@ -142,7 +142,7 @@ impl VariationPrecalculations {
     }
 }
 
-pub trait Flam3Variation: Variation {
+pub(crate) trait Flam3Variation: Variation {
     fn apply(
         &self,
         state: &mut IterationState,
@@ -155,7 +155,7 @@ pub trait Flam3Variation: Variation {
     }
 }
 
-pub struct IterationState<'a> {
+pub(crate) struct IterationState<'a> {
     p0: f64,
     p1: f64,
     tx: f64,
@@ -2131,7 +2131,7 @@ impl Flam3Variation for variations::Mobius {
     }
 }
 
-pub fn apply_xform(
+pub(crate) fn apply_xform(
     xform: &Transform,
     p: &[f64; 4],
     q: &mut [f64; 4],

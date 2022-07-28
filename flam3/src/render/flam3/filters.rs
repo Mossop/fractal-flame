@@ -5,7 +5,7 @@ use crate::rect::Rect;
 use crate::utils::fastdiv;
 use crate::{utils::PanicCast, SpatialFilter, TemporalFilterType};
 
-use super::{Field, Frame};
+use super::{Frame, LineField};
 
 const FLAM3_MITCHELL_B: f64 = 1.0 / 3.0;
 const FLAM3_MITCHELL_C: f64 = 1.0 / 3.0;
@@ -234,7 +234,7 @@ fn normalize_vector(v: &mut Rect<f64>) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn create_spatial_filter(frame: &Frame, field: Field) -> Result<Rect<f64>, String> {
+pub(super) fn create_spatial_filter(frame: &Frame, field: LineField) -> Result<Rect<f64>, String> {
     let spatial_filter = frame.genomes[0].spatial_filter;
     let supersample = frame.genomes[0].spatial_supersample;
     let filter_radius = frame.genomes[0].spatial_filter_radius;
@@ -267,7 +267,7 @@ pub(super) fn create_spatial_filter(frame: &Frame, field: Field) -> Result<Rect<
             let mut jj = ((2 * j + 1).f64() / fwidth.f64() - 1.0) * adjust;
 
             /* Scale for scanlines */
-            if field != Field::Both {
+            if field != LineField::Both {
                 jj *= 2.0;
             }
 
@@ -395,7 +395,7 @@ impl TemporalFilter {
 }
 
 #[derive(Default, Debug, Clone)]
-pub(super) struct DensityEstimatorFilter {
+pub(crate) struct DensityEstimatorFilter {
     width: usize,
     coefs: Vec<f64>,
 }
@@ -476,7 +476,7 @@ impl DensityEstimatorFilter {
 }
 
 #[derive(Default, Debug, Clone)]
-pub(super) struct DensityEstimatorFilters {
+pub(crate) struct DensityEstimatorFilters {
     pub curve: f64,
     pub max_filtered_counts: f64,
     pub filters: Vec<DensityEstimatorFilter>,

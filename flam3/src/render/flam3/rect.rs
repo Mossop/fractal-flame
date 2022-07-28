@@ -4,11 +4,15 @@ use palette::{encoding, FromColor, Hsv, Pixel, Srgb, Srgba};
 
 use crate::math::{cos, pow, sin, sqr};
 use crate::render::flam3::filters::TemporalFilter;
+use crate::render::flam3::variations::VariationPrecalculations;
+use crate::render::flam3::TransformSelector;
 use crate::{render::flam3::DensityEstimatorFilters, utils::PanicCast};
 use crate::{Coordinate, Dimension};
 
 use super::storage::RenderStorage;
-use super::{filters::create_spatial_filter, flam3_interpolate, Field, Frame, IterationContext};
+use super::{
+    filters::create_spatial_filter, flam3_interpolate, Frame, IterationContext, LineField,
+};
 
 const SKIP_ITERATIONS: u32 = 15;
 const SKIP_ITERATIONS_EARLYCLIP: u32 = 100;
@@ -91,7 +95,7 @@ fn flam3_calc_newrgb(cbuf: &[f64; 3], ls: f64, highpow: f64) -> [f64; 3] {
 pub(super) fn render_rectangle<S: RenderStorage>(
     mut frame: Frame,
     mut buffer: &mut [u8],
-    field: Field,
+    field: LineField,
 ) -> Result<(), String> {
     let mut background = Srgba::default();
     let mut gamma = 0.0;
@@ -108,8 +112,8 @@ pub(super) fn render_rectangle<S: RenderStorage>(
 
     // Set up the output image dimensions, adjusted for scanline
     let image_width = cp.size.width;
-    let (image_height, out_width) = if field != Field::Both {
-        if field == Field::Odd {
+    let (image_height, out_width) = if field != LineField::Both {
+        if field == LineField::Odd {
             // Offset the buffer
             buffer =
                 &mut buffer[(frame.channels * frame.bytes_per_channel * cp.size.width).usize()..];
@@ -183,6 +187,8 @@ pub(super) fn render_rectangle<S: RenderStorage>(
         let mut sample_density = 0.0;
         let de_time = frame.time + temporal_filter.time_offset(batch_num, 0);
 
+        storage.reset_buckets();
+
         //  interpolate and get a control point
         //  ONLY FOR DENSITY FILTER WIDTH PURPOSES
         //  additional interpolation will be done in the temporal_sample loop
@@ -233,16 +239,16 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             sample_density = cp.sample_density * sqr!(scale);
 
             ppux = cp.pixels_per_unit * scale;
-            ppuy = if field != Field::Both {
+            ppuy = if field != LineField::Both {
                 ppux / 2.0
             } else {
                 ppux
             };
             ppux /= frame.pixel_aspect_ratio;
             let mut shift = match field {
-                Field::Both => 0.0,
+                LineField::Both => 0.0,
                 // Field::Even => -0.5,
-                Field::Odd => 0.5,
+                LineField::Odd => 0.5,
             };
 
             shift /= ppux;
@@ -316,7 +322,18 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 palette_mode: cp.palette_mode,
             };
 
-            storage.run_iteration_threads(&cp, &context, &mut frame.rng, frame.num_threads)?;
+            let xform_distrib = TransformSelector::new(&cp)?;
+            let final_xform = cp
+                .final_transform
+                .as_ref()
+                .map(|xf| (xf.clone(), VariationPrecalculations::new(xf)));
+            storage.run_iteration_threads(
+                xform_distrib,
+                final_xform,
+                &context,
+                &mut frame.rng,
+                frame.num_threads,
+            )?;
 
             vibrancy += cp.vibrancy;
             gamma += cp.gamma;
@@ -369,10 +386,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             for i in 0..storage_width {
                 let accumulator = &mut accumulators[(i, j)];
 
-                let (alpha, ls) = if accumulator.alpha.f64() <= 0.0 {
+                let (alpha, ls) = if accumulator.alpha <= 0.0 {
                     (0.0, 0.0)
                 } else {
-                    let tmp = accumulator.alpha.f64() / PREFILTER_WHITE.f64();
+                    let tmp = accumulator.alpha / PREFILTER_WHITE.f64();
                     let mut alpha = flam3_calc_alpha(tmp, g, linrange);
                     let ls = vibrancy * 256.0 * alpha / tmp;
                     if alpha < 0.0 {
@@ -384,11 +401,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                     (alpha, ls)
                 };
 
-                let t = [
-                    accumulator.red.f64(),
-                    accumulator.green.f64(),
-                    accumulator.blue.f64(),
-                ];
+                let t = [accumulator.red, accumulator.green, accumulator.blue];
                 let newrgb = flam3_calc_newrgb(&t, ls, highpow);
 
                 let bg_color = background.as_raw::<[f64]>();
@@ -413,10 +426,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                     }
 
                     //  Replace values in accumulation buffer with these new ones
-                    accumulator[rgbi] = S::into_accumulator(a);
+                    accumulator[rgbi] = a;
                 }
 
-                accumulator.alpha = S::into_accumulator(alpha);
+                accumulator.alpha = alpha;
             }
         }
     }
@@ -433,10 +446,10 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                     let k = spatial_filter[(ii, jj)];
                     let ac = &mut accumulators[(x + ii, y + jj)];
 
-                    t[0] += k * ac.red.f64();
-                    t[1] += k * ac.green.f64();
-                    t[2] += k * ac.blue.f64();
-                    t[3] += k * ac.alpha.f64();
+                    t[0] += k * ac.red;
+                    t[1] += k * ac.green;
+                    t[2] += k * ac.blue;
+                    t[3] += k * ac.alpha;
                 }
             }
 

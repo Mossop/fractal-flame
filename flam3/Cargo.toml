@@ -24,6 +24,7 @@ palette = "^0.6.0"
 libm = { version = "^0.2.2", optional = true }
 rust-embed = { version = "^6.4.0", features = ["debug-embed"] }
 itertools = "^0.10.3"
+atomic_float = "^0.1.0"
 
 [features]
 fastmath = []

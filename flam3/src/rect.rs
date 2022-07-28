@@ -33,6 +33,32 @@ impl<T> Rect<T> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.buffer.iter_mut()
     }
+
+    pub fn map<R, F>(&self, mapper: F) -> Rect<R>
+    where
+        F: FnMut(&T) -> R,
+    {
+        let mut buffer = Vec::new();
+        buffer.reserve(self.buffer.len());
+        buffer.extend(self.buffer.iter().map(mapper));
+
+        Rect {
+            width: self.width,
+            buffer,
+        }
+    }
+}
+
+impl<T: Default> Rect<T> {
+    pub fn default(width: usize, height: usize) -> Rect<T> {
+        let mut buffer = Vec::new();
+        buffer.reserve(width * height);
+        for _ in 0..(width * height) {
+            buffer.push(Default::default());
+        }
+
+        Rect { width, buffer }
+    }
 }
 
 impl<T: Clone> Rect<T> {

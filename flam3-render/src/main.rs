@@ -22,6 +22,9 @@ struct Args {
     seed: Option<String>,
 
     #[clap(long)]
+    threads: Option<usize>,
+
+    #[clap(long)]
     earlyclip: bool,
 }
 
@@ -67,6 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             RenderOptions {
                 isaac_seed: args.seed.clone(),
                 earlyclip: args.earlyclip,
+                threads: args.threads,
                 ..Default::default()
             },
         )?;

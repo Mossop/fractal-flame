@@ -64,11 +64,11 @@ fn flam3_iterate(
     bad_iterations
 }
 
-pub(super) trait IterationStorage {
+pub(super) trait IterationThreadStorage {
     fn increase_bucket(&mut self, x: usize, y: usize, color: Srgba<f64>, logvis: f64);
 }
 
-pub(super) fn iter_thread<S: IterationStorage>(
+pub(super) fn iter_thread<S: IterationThreadStorage>(
     context: &IterationContext,
     xform_distrib: &TransformSelector,
     final_xform: &Option<(Transform, VariationPrecalculations)>,
@@ -179,7 +179,7 @@ pub(super) fn iter_thread<S: IterationStorage>(
     Ok(())
 }
 
-pub(super) trait DensityEstimationStorage {
+pub(super) trait DensityEstimationThreadStorage {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     fn density(&self, x: usize, y: usize) -> f64;
@@ -187,7 +187,11 @@ pub(super) trait DensityEstimationStorage {
     fn increase_accumulator(&mut self, x: usize, y: usize, pixel: &Accumulator<f64>);
 }
 
-pub(super) fn empty_de_thread<S: DensityEstimationStorage>(k1: f64, k2: f64, storage: &mut S) {
+pub(super) fn empty_de_thread<S: DensityEstimationThreadStorage>(
+    k1: f64,
+    k2: f64,
+    storage: &mut S,
+) {
     for j in 0..storage.height() {
         for i in 0..storage.width() {
             let mut pixel = storage.accumulate(i, j);
@@ -204,7 +208,7 @@ pub(super) fn empty_de_thread<S: DensityEstimationStorage>(k1: f64, k2: f64, sto
     }
 }
 
-pub(super) fn de_thread<S: DensityEstimationStorage>(
+pub(super) fn de_thread<S: DensityEstimationThreadStorage>(
     context: DensityEstimationContext,
     storage: &mut S,
 ) {

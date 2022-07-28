@@ -5,6 +5,8 @@ mod storage;
 mod thread;
 mod variations;
 
+use std::thread::available_parallelism;
+
 use image::RgbaImage;
 use rand::RngCore;
 
@@ -14,11 +16,15 @@ use crate::{Coordinate, PaletteMode};
 pub(crate) use storage::Accumulator;
 
 use self::filters::DensityEstimatorFilters;
-use self::storage::{RenderStorage, RenderStorageAtomicFloat};
+use self::storage::atomic::{
+    RenderStorageAtomicDouble, RenderStorageAtomicFloat, RenderStorageAtomicInt,
+};
+use self::storage::sync::{RenderStorageSyncDouble, RenderStorageSyncFloat, RenderStorageSyncInt};
+use self::storage::RenderStorage;
 use self::variations::VariationPrecalculations;
 use self::{rect::render_rectangle, rng::IsaacRng};
 
-use super::{Buffers, RenderOptions};
+use super::{Buffers, RenderOptions, ThreadingMode};
 
 pub const CHOOSE_XFORM_GRAIN: usize = 16384;
 pub const CHOOSE_XFORM_GRAIN_M1: usize = 16383;
@@ -32,7 +38,7 @@ fn adjust_percentage(perc: f64) -> f64 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Field {
+enum LineField {
     Both,
     Odd,
 }
@@ -53,7 +59,7 @@ struct Frame {
 }
 
 #[derive(Clone)]
-struct IterationContext {
+pub(crate) struct IterationContext {
     bounds: [Coordinate<f64>; 2], //  Corner coords of viewable area
     rot: Affine,                  //  Rotation transformation
     ws0: f64,
@@ -69,7 +75,7 @@ struct IterationContext {
     palette_mode: PaletteMode,
 }
 
-struct DensityEstimationContext {
+pub(crate) struct DensityEstimationContext {
     supersample: u32,
     de_filters: DensityEstimatorFilters,
     k1: f64,
@@ -86,28 +92,54 @@ pub(crate) fn render(genome: Genome, options: RenderOptions) -> Result<RgbaImage
         Default::default()
     };
 
-    match options.buffers {
-        Buffers::Int => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
-        Buffers::Float => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
-        Buffers::Double => render_internal::<RenderStorageAtomicFloat>(genome, options, rng),
+    let num_threads = options
+        .threads
+        .and_then(|v| if v == 0 { None } else { Some(v) })
+        .unwrap_or_else(|| available_parallelism().map(|s| s.get()).unwrap_or(1));
+
+    if num_threads == 1 || options.threading_mode == Some(ThreadingMode::Sync) {
+        match options.buffers {
+            Buffers::Int => {
+                render_internal::<RenderStorageSyncInt>(genome, options, num_threads, rng)
+            }
+            Buffers::Float => {
+                render_internal::<RenderStorageSyncFloat>(genome, options, num_threads, rng)
+            }
+            Buffers::Double => {
+                render_internal::<RenderStorageSyncDouble>(genome, options, num_threads, rng)
+            }
+        }
+    } else {
+        match options.buffers {
+            Buffers::Int => {
+                render_internal::<RenderStorageAtomicInt>(genome, options, num_threads, rng)
+            }
+            Buffers::Float => {
+                render_internal::<RenderStorageAtomicFloat>(genome, options, num_threads, rng)
+            }
+            Buffers::Double => {
+                render_internal::<RenderStorageAtomicDouble>(genome, options, num_threads, rng)
+            }
+        }
     }
 }
 
 fn render_internal<S: RenderStorage>(
     mut genome: Genome,
     options: RenderOptions,
+    num_threads: usize,
     rng: IsaacRng,
 ) -> Result<RgbaImage, String> {
     let num_strips = options.num_strips.unwrap_or(1);
-    let num_threads = options.threads.unwrap_or(1);
     log::trace!(
-        "Starting render pass, width={}, height={}, channels={}, density={}, supersample={}, threads={}, strips={}",
+        "Starting render pass, width={}, height={}, channels={}, density={}, supersample={}, threads={}, model={}, strips={}",
         genome.size.width,
         genome.size.height,
         options.channels,
         genome.sample_density,
         genome.spatial_supersample,
         num_threads,
+        S::threading_model(),
         num_strips
     );
 
@@ -169,7 +201,7 @@ fn render_internal<S: RenderStorage>(
             bytes_per_channel: options.bytes_per_channel,
         };
 
-        render_rectangle::<S>(frame, buffer, Field::Both)?;
+        render_rectangle::<S>(frame, buffer, LineField::Both)?;
     }
 
     log::trace!("Strips complete");
@@ -224,7 +256,8 @@ fn flam3_create_chaos_distrib(
     Ok(())
 }
 
-struct TransformSelector {
+#[derive(Clone)]
+pub(crate) struct TransformSelector {
     xform_distrib: Vec<usize>,
     xforms: Vec<Transform>,
     precalcs: Vec<VariationPrecalculations>,
