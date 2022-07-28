@@ -8,7 +8,10 @@ use crate::{render::flam3::DensityEstimatorFilters, utils::PanicCast};
 use crate::{Coordinate, Dimension};
 
 use super::storage::RenderStorage;
-use super::{filters::create_spatial_filter, flam3_interpolate, Field, Flam3IterConstants, Frame};
+use super::{filters::create_spatial_filter, flam3_interpolate, Field, Frame, IterationContext};
+
+const SKIP_ITERATIONS: u32 = 15;
+const SKIP_ITERATIONS_EARLYCLIP: u32 = 100;
 
 const WHITE_LEVEL: u32 = 255;
 const PREFILTER_WHITE: u32 = 255;
@@ -293,7 +296,7 @@ pub(super) fn render_rectangle<S: RenderStorage>(
             let ws0 = storage_width.f64() * size.width;
             let hs1 = storage_height.f64() * size.height;
 
-            let fic = Flam3IterConstants {
+            let context = IterationContext {
                 rot,
                 ws0,
                 wb0s0: ws0 * bounds[0].x,
@@ -302,14 +305,18 @@ pub(super) fn render_rectangle<S: RenderStorage>(
                 bounds,
                 dmap,
                 batch_size: (batch_size / frame.num_threads.f64()).u32(),
-                earlyclip: frame.earlyclip,
+                skip_iterations: if frame.earlyclip {
+                    SKIP_ITERATIONS_EARLYCLIP
+                } else {
+                    SKIP_ITERATIONS
+                },
                 sub_batch_size: frame.sub_batch_size,
                 rotate: cp.rotate,
                 rot_center: cp.rot_center.clone(),
                 palette_mode: cp.palette_mode,
             };
 
-            storage.run_iteration_threads(&cp, &fic, &mut frame.rng, frame.num_threads)?;
+            storage.run_iteration_threads(&cp, &context, &mut frame.rng, frame.num_threads)?;
 
             vibrancy += cp.vibrancy;
             gamma += cp.gamma;

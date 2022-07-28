@@ -12,7 +12,7 @@ use super::{
     rng::IsaacRng,
     thread::{de_thread, empty_de_thread, iter_thread, DensityEstimationStorage, IterationStorage},
     variations::VariationPrecalculations,
-    Flam3DeThreadHelper, Flam3IterConstants, TransformSelector,
+    DensityEstimationContext, IterationContext, TransformSelector,
 };
 
 #[derive(Clone)]
@@ -134,7 +134,7 @@ pub(super) trait RenderStorage {
     fn run_iteration_threads(
         &mut self,
         cp: &Genome,
-        ficp: &Flam3IterConstants,
+        context: &IterationContext,
         rng: &mut IsaacRng,
         thread_count: usize,
     ) -> Result<(), String>;
@@ -194,7 +194,7 @@ impl RenderStorage for RenderStorageAtomicFloat {
     fn run_iteration_threads(
         &mut self,
         cp: &Genome,
-        ficp: &Flam3IterConstants,
+        context: &IterationContext,
         rng: &mut IsaacRng,
         thread_count: usize,
     ) -> Result<(), String> {
@@ -206,7 +206,7 @@ impl RenderStorage for RenderStorageAtomicFloat {
 
         for _i in 0..thread_count {
             iter_thread(
-                ficp,
+                context,
                 &xform_distrib,
                 &final_xform,
                 &mut IsaacRng::from_rng(rng),
@@ -241,7 +241,7 @@ impl RenderStorage for RenderStorageAtomicFloat {
                 };
 
                 //  Set up the contents of the helper structure
-                let helper = Flam3DeThreadHelper {
+                let context = DensityEstimationContext {
                     supersample,
                     de_filters: de_filters.clone(),
                     k1,
@@ -251,7 +251,7 @@ impl RenderStorage for RenderStorageAtomicFloat {
                     end_row,
                 };
 
-                de_thread(helper, self);
+                de_thread(context, self);
             }
         }
     }

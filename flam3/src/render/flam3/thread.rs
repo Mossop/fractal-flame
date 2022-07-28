@@ -5,11 +5,8 @@ use crate::render::flam3::rng::Flam3Rng;
 use crate::{render::flam3::filters::DE_THRESH, utils::PanicCast, PaletteMode, Transform};
 
 use super::variations::VariationPrecalculations;
-use super::{rng::IsaacRng, variations::apply_xform, Flam3DeThreadHelper, TransformSelector};
-use super::{Accumulator, Flam3IterConstants};
-
-const FUSE_27: u32 = 15;
-const FUSE_28: u32 = 100;
+use super::{rng::IsaacRng, variations::apply_xform, DensityEstimationContext, TransformSelector};
+use super::{Accumulator, IterationContext};
 
 /// Runs a set of iterations mutating samples after a set of iterations have been skipped.
 fn flam3_iterate(
@@ -25,8 +22,10 @@ fn flam3_iterate(
 
     let mut p = [samples[0], samples[1], samples[2], samples[3]];
 
-    let mut iteration = -(skip_iterations.i32());
-    while iteration < (iterations.i32()) {
+    let mut iteration = 0;
+    let mut pos = 0;
+    let total_iterations = skip_iterations + iterations;
+    while iteration < total_iterations {
         let (xform, precalc) = selector.next(rng);
 
         let mut q = [0.0; 4];
@@ -54,10 +53,9 @@ fn flam3_iterate(
         }
 
         /* if fuse over, store it */
-        if iteration >= 0 {
-            let i = (iteration * 4).usize();
-
-            samples[i..i + 4].copy_from_slice(&q);
+        if iteration >= skip_iterations {
+            samples[pos..pos + 4].copy_from_slice(&q);
+            pos += 4;
         }
 
         iteration += 1;
@@ -71,26 +69,25 @@ pub(super) trait IterationStorage {
 }
 
 pub(super) fn iter_thread<S: IterationStorage>(
-    ficp: &Flam3IterConstants,
+    context: &IterationContext,
     xform_distrib: &TransformSelector,
     final_xform: &Option<(Transform, VariationPrecalculations)>,
     rng: &mut IsaacRng,
     storage: &mut S,
 ) -> Result<(), String> {
     log::trace!("Starting iteration thread");
-    let cmap_size = ficp.dmap.len().f64();
-    let cmap_size_m1 = ficp.dmap.len().i32() - 1;
+    let cmap_size = context.dmap.len().f64();
+    let cmap_size_m1 = context.dmap.len().i32() - 1;
 
-    let fuse = if ficp.earlyclip { FUSE_28 } else { FUSE_27 };
-    let mut iter_storage = vec![0.0; 4 * ficp.sub_batch_size.usize()];
+    let mut iter_storage = vec![0.0; 4 * context.sub_batch_size.usize()];
     let mut badvals: u32 = 0;
 
-    for sub_batch in (0..ficp.batch_size).step_by(ficp.sub_batch_size.usize()) {
+    for sub_batch in (0..context.batch_size).step_by(context.sub_batch_size.usize()) {
         /* sub_batch is double so this is sketchy */
-        let sub_batch_size = if sub_batch + ficp.sub_batch_size > ficp.batch_size {
-            ficp.batch_size - sub_batch
+        let sub_batch_size = if sub_batch + context.sub_batch_size > context.batch_size {
+            context.batch_size - sub_batch
         } else {
-            ficp.sub_batch_size
+            context.sub_batch_size
         };
 
         /* Seed iterations */
@@ -102,7 +99,7 @@ pub(super) fn iter_thread<S: IterationStorage>(
         /* Execute iterations */
         let badcount = flam3_iterate(
             sub_batch_size,
-            fuse,
+            context.skip_iterations,
             &mut iter_storage,
             xform_distrib,
             final_xform,
@@ -116,18 +113,19 @@ pub(super) fn iter_thread<S: IterationStorage>(
         for j in (0..(sub_batch_size.usize() * 4)).step_by(4) {
             let p = &iter_storage[j..j + 4];
 
-            let (p0, p1) = if ficp.rotate != 0.0 {
-                ficp.rot
-                    .transform((&[p[0] - ficp.rot_center.x, p[1] - ficp.rot_center.y]).into())
+            let (p0, p1) = if context.rotate != 0.0 {
+                context
+                    .rot
+                    .transform((&[p[0] - context.rot_center.x, p[1] - context.rot_center.y]).into())
                     .into()
             } else {
                 (p[0], p[1])
             };
 
-            if p0 >= ficp.bounds[0].x
-                && p1 >= ficp.bounds[0].y
-                && p0 <= ficp.bounds[1].x
-                && p1 <= ficp.bounds[1].y
+            if p0 >= context.bounds[0].x
+                && p1 >= context.bounds[0].y
+                && p0 <= context.bounds[1].x
+                && p1 <= context.bounds[1].y
             {
                 let logvis = p[3];
 
@@ -139,7 +137,7 @@ pub(super) fn iter_thread<S: IterationStorage>(
                 let dbl_index0 = p[2] * cmap_size.f64();
                 let color_index0 = dbl_index0.i32();
 
-                let interpcolor = if PaletteMode::Linear == ficp.palette_mode {
+                let interpcolor = if PaletteMode::Linear == context.palette_mode {
                     let (cindex, dbl_frac) = if color_index0 < 0 {
                         (0, 0.0)
                     } else if color_index0 >= cmap_size_m1 {
@@ -149,9 +147,10 @@ pub(super) fn iter_thread<S: IterationStorage>(
                         (color_index0.usize(), dbl_index0 - color_index0.f64())
                     };
 
-                    ficp.dmap[cindex].component_wise(&ficp.dmap[cindex + 1], |first, second| {
-                        first * (1.0 - dbl_frac) + second * dbl_frac
-                    })
+                    context.dmap[cindex]
+                        .component_wise(&context.dmap[cindex + 1], |first, second| {
+                            first * (1.0 - dbl_frac) + second * dbl_frac
+                        })
                 } else {
                     /* Palette mode step */
                     let cindex = if color_index0 < 0 {
@@ -162,12 +161,12 @@ pub(super) fn iter_thread<S: IterationStorage>(
                         color_index0.usize()
                     };
 
-                    ficp.dmap[cindex]
+                    context.dmap[cindex]
                 };
 
                 storage.increase_bucket(
-                    (ficp.ws0 * p0 - ficp.wb0s0).usize(),
-                    (ficp.hs1 * p1 - ficp.hb1s1).usize(),
+                    (context.ws0 * p0 - context.wb0s0).usize(),
+                    (context.hs1 * p1 - context.hb1s1).usize(),
                     interpcolor,
                     logvis,
                 );
@@ -205,14 +204,17 @@ pub(super) fn empty_de_thread<S: DensityEstimationStorage>(k1: f64, k2: f64, sto
     }
 }
 
-pub(super) fn de_thread<S: DensityEstimationStorage>(dthp: Flam3DeThreadHelper, storage: &mut S) {
-    let supersample = dthp.supersample;
+pub(super) fn de_thread<S: DensityEstimationStorage>(
+    context: DensityEstimationContext,
+    storage: &mut S,
+) {
+    let supersample = context.supersample;
     let ss = (supersample.f64() / 2.0).floor().usize();
     let scf = (supersample & 1) == 0;
     let scfact = sqr!(supersample.f64() / (supersample.f64() + 1.0));
-    let start_row = ((supersample - 1) + dthp.start_row).usize();
-    let end_row = ((supersample - 1) + dthp.end_row).usize();
-    let de_filters = dthp.de_filters;
+    let start_row = ((supersample - 1) + context.start_row).usize();
+    let end_row = ((supersample - 1) + context.end_row).usize();
+    let de_filters = context.de_filters;
 
     log::trace!(
         "Starting density estimation thread for rows {} to {}, width={}, height={}",
@@ -250,7 +252,10 @@ pub(super) fn de_thread<S: DensityEstimationStorage>(dthp: Flam3DeThreadHelper, 
             } else if f_select <= DE_THRESH.f64() {
                 f_select.ceil().usize() - 1
             } else {
-                DE_THRESH + pow!(f_select - DE_THRESH.f64(), dthp.curve).floor().usize()
+                DE_THRESH
+                    + pow!(f_select - DE_THRESH.f64(), context.curve)
+                        .floor()
+                        .usize()
             };
 
             /* If the filter selected below the min specified clamp it to the min */
@@ -268,7 +273,7 @@ pub(super) fn de_thread<S: DensityEstimationStorage>(dthp: Flam3DeThreadHelper, 
                     continue;
                 }
 
-                let ls = coef * (dthp.k1 * ln!(1.0 + current_pixel.alpha * dthp.k2))
+                let ls = coef * (context.k1 * ln!(1.0 + current_pixel.alpha * context.k2))
                     / current_pixel.alpha;
                 let pixel = &current_pixel * ls;
 

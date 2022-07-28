@@ -53,7 +53,7 @@ struct Frame {
 }
 
 #[derive(Clone)]
-struct Flam3IterConstants {
+struct IterationContext {
     bounds: [Coordinate<f64>; 2], //  Corner coords of viewable area
     rot: Affine,                  //  Rotation transformation
     ws0: f64,
@@ -62,14 +62,14 @@ struct Flam3IterConstants {
     hb1s1: f64,    //  shortcuts for indexing
     dmap: Palette, //  palette
     batch_size: u32,
-    earlyclip: bool,
+    skip_iterations: u32,
     sub_batch_size: u32,
     rotate: f64,
     rot_center: Coordinate<f64>,
     palette_mode: PaletteMode,
 }
 
-struct Flam3DeThreadHelper {
+struct DensityEstimationContext {
     supersample: u32,
     de_filters: DensityEstimatorFilters,
     k1: f64,
