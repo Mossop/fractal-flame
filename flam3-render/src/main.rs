@@ -9,23 +9,42 @@ use flam3::{flam3_from_reader, render, RenderOptions};
 use flexi_logger::Logger;
 use image::ImageFormat;
 
-/// Simple program to greet a person
+/// A command line tool for rendering flam3 fractal flames.
+///
+/// Attempts to maintain some semblence of compatibility with the original
+/// flam3-render tool from Scott Draves. Many of the same options can be
+/// set using the same environment variables however command line argument
+/// support is also available.
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[clap(author, version, rename_all_env = "verbatim")]
 struct Args {
+    /// The file to render.
+    #[clap(env = "in")]
     file: Option<String>,
 
-    #[clap(long)]
+    /// File to output to.
+    #[clap(long, env)]
     out: Option<String>,
 
-    #[clap(long)]
+    /// The initial seed for random numbers. Generally only useful for testing.
+    #[clap(long, env = "isaac_seed")]
     seed: Option<String>,
 
-    #[clap(long)]
+    /// How many threads to use. Uses a sane default if absent.
+    #[clap(long = "nthreads", env = "nthreads")]
     threads: Option<usize>,
 
-    #[clap(long)]
+    /// Enables early clipping of rbg values for better antialiasing and resizing.
+    #[clap(long, env)]
     earlyclip: bool,
+
+    /// Magnifies the final image by this amount.
+    #[clap(long = "ss", env = "ss")]
+    size_scale: Option<f64>,
+
+    /// Magnifies the quality by this amount.
+    #[clap(long = "qs", env = "qs")]
+    quality_scale: Option<f64>,
 }
 
 fn make_single_name(out: &Option<String>) -> String {
@@ -59,12 +78,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let count = genomes.len();
 
-    for (index, genome) in genomes.into_iter().enumerate() {
+    for (index, mut genome) in genomes.into_iter().enumerate() {
+        if let Some(scale) = args.size_scale {
+            genome.scale(scale);
+        }
+
+        if let Some(scale) = args.quality_scale {
+            genome.sample_density *= scale;
+        }
+
         let name = genome
             .name
             .clone()
             .unwrap_or_else(|| format!("genome {}", index));
         eprintln!("Rendering {}...", name);
+
         let data = render(
             genome,
             RenderOptions {

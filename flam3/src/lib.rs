@@ -363,6 +363,14 @@ fn compare_xforms(a: &Transform, b: &Transform) -> Ordering {
 }
 
 impl Genome {
+    pub fn scale(&mut self, scale: f64) {
+        self.size = Dimension {
+            width: (self.size.width as f64 * scale) as u32,
+            height: (self.size.height as f64 * scale) as u32,
+        };
+        self.pixels_per_unit *= scale;
+    }
+
     pub fn add_transform(&mut self, transform: Transform) {
         self.transforms.push(transform);
     }
@@ -455,5 +463,28 @@ impl Default for Genome {
             transforms: Vec::new(),
             final_transform: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Dimension, Genome};
+
+    #[test]
+    fn scaling() {
+        let mut genome = Genome {
+            size: Dimension {
+                width: 320,
+                height: 240,
+            },
+            pixels_per_unit: 20.0,
+            ..Default::default()
+        };
+
+        genome.scale(1.5);
+
+        assert_eq!(genome.size.width, 480);
+        assert_eq!(genome.size.height, 360);
+        assert_eq!(genome.pixels_per_unit, 30.0);
     }
 }

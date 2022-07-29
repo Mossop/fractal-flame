@@ -5,7 +5,7 @@ out() {
   echo --out=$TARGET $1
 }
 
-RENDER="cargo run --release --features libm -- --seed=foobar"
+RENDER="cargo run --release --features libm -- --nthreads=1 --seed=foobar"
 
 for SOURCE in `ls flam3/tests/render/*.flam3`
 do
