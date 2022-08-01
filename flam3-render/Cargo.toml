@@ -10,7 +10,7 @@ edition = "2021"
 
 [dependencies]
 flam3 = { path = "../flam3" }
-clap = { version = "^3.1.16", features = ["derive", "env"] }
+clap = { version = "^3.2.15", features = ["derive", "env"] }
 flexi_logger = "^0.22.3"
 image = "^0.24.2"
 
